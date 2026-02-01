@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <title>Berufsmesse Stand</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
 <script src="data.js"></script>
+<script>
+  const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I";
+  const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
 </head>
 <body>
 <h1>🎯 Stand-Check</h1>
@@ -28,11 +34,16 @@ document.getElementById("company").innerText = standData.name;
 document.getElementById("area").innerText = standData.area;
 document.getElementById("standNum").innerText = sid;
 
-let visited = JSON.parse(localStorage.getItem("visited")) || [];
-if(!visited.includes(sid)){
-    visited.push(sid);
-    localStorage.setItem("visited", JSON.stringify(visited));
+const participantId = localStorage.getItem("participantId");
+
+async function saveStand(){
+    const { data, error } = await supabase
+        .from('visits')
+        .insert([{ participant_id: participantId, stand_id: parseInt(sid) }]);
+    if(error) console.error("Fehler beim Speichern:", error);
 }
+
+saveStand();
 </script>
 </body>
 </html>
