@@ -3,13 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <title>Berufsmesse Fortschritt</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
 <script src="data.js"></script>
+<script>
+  const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I";
+  const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
 </head>
 <body>
 <h1>🎓 Berufsmesse 2026</h1>
 
 <p>
-Deine Teilnehmer-ID: <strong id="participantId"></strong><br>
+Teilnehmer-ID: <strong id="participantId"></strong><br>
 Besuchte Stände: <strong id="count">0</strong>
 </p>
 
@@ -22,22 +28,36 @@ if(!localStorage.getItem("participantId")){
 }
 
 document.getElementById("participantId").innerText = localStorage.getItem("participantId");
-document.getElementById("count").innerText = (JSON.parse(localStorage.getItem("visited")) || []).length;
+
+async function loadProgress(){
+    const participantId = localStorage.getItem("participantId");
+    const { data, error } = await supabase
+        .from('visits')
+        .select('stand_id')
+        .eq('participant_id', participantId);
+    if(data) document.getElementById("count").innerText = data.length;
+}
+
+loadProgress();
 
 function downloadCSV(){
     const participantId = localStorage.getItem("participantId");
-    const visited = JSON.parse(localStorage.getItem("visited")) || [];
-    let csv = "participant_id,stand_id\n";
-    visited.forEach(s => { csv += participantId + "," + s + "\n"; });
-    const blob = new Blob([csv], {type: 'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `berufsmesse_${participantId}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    supabase
+        .from('visits')
+        .select('stand_id')
+        .eq('participant_id', participantId)
+        .then(({ data, error }) => {
+            let csv = "participant_id,stand_id\n";
+            data.forEach(row => { csv += participantId + "," + row.stand_id + "\n"; });
+            const blob = new Blob([csv], {type: 'text/csv'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `berufsmesse_${participantId}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
 }
 </script>
-
 </body>
 </html>
