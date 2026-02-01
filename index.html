@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Berufsmesse Fortschritt</title>
+<script src="data.js"></script>
+</head>
+<body>
+<h1>🎓 Berufsmesse 2026</h1>
+
+<p>
+Deine Teilnehmer-ID: <strong id="participantId"></strong><br>
+Besuchte Stände: <strong id="count">0</strong>
+</p>
+
+<button onclick="downloadCSV()">⬇️ CSV herunterladen</button>
+
+<script>
+if(!localStorage.getItem("participantId")){
+    const id = "T-" + Math.random().toString(36).substring(2,8).toUpperCase();
+    localStorage.setItem("participantId", id);
+}
+
+document.getElementById("participantId").innerText = localStorage.getItem("participantId");
+document.getElementById("count").innerText = (JSON.parse(localStorage.getItem("visited")) || []).length;
+
+function downloadCSV(){
+    const participantId = localStorage.getItem("participantId");
+    const visited = JSON.parse(localStorage.getItem("visited")) || [];
+    let csv = "participant_id,stand_id\n";
+    visited.forEach(s => { csv += participantId + "," + s + "\n"; });
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `berufsmesse_${participantId}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>
