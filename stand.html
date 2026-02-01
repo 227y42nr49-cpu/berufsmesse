@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Berufsmesse Stand</title>
+<script src="data.js"></script>
+</head>
+<body>
+<h1>🎯 Stand-Check</h1>
+
+<p>
+Unternehmen: <span id="company"></span><br>
+Bereich: <span id="area"></span><br>
+Stand-Nr.: <span id="standNum"></span>
+</p>
+
+<a href="index.html">🔙 Zurück zum Fortschritt</a>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const sid = params.get("sid");
+if(!sid){ alert("Ungültiger QR-Code"); }
+
+const standData = stands[sid];
+if(!standData){ alert("Unbekannter Stand"); }
+
+document.getElementById("company").innerText = standData.name;
+document.getElementById("area").innerText = standData.area;
+document.getElementById("standNum").innerText = sid;
+
+let visited = JSON.parse(localStorage.getItem("visited")) || [];
+if(!visited.includes(sid)){
+    visited.push(sid);
+    localStorage.setItem("visited", JSON.stringify(visited));
+}
+</script>
+</body>
+</html>
