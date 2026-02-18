@@ -67,7 +67,7 @@ const stands = {
 "66": {name: "IHK Flensburg", area: "Wirtschaftsorganisation"},
 "67": {name: "Zoll", area: "Finanz- & Sicherheitsbehörde"},
 "68": {name: "Volks- und Raiffeisenbank SH Mitte", area: "Bankwesen"},
-"69": {name: "Scheller Boyens", area: "Rechtsberatung"},
+"69": {name: "Scheller Boyens", area: "Buchhandlung"},
 "70": {name: "Schornsteinfegerinnung", area: "Handwerksorganisation"},
 "71": {name: "Schutzstation Wattenmeer / Umweltjahr / FÖJ", area: "Umwelt- & Naturschutz"}
 
