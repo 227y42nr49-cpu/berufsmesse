@@ -57,7 +57,7 @@ const stands = {
 "56": {name: "Fielmann", area: "Augenoptik & Einzelhandel"},
 "57": {name: "Lidl", area: "Lebensmitteleinzelhandel"},
 "58": {name: "Enercon", area: "Windenergie & Anlagenbau"},
-"59": {name: "Kardell-Sothmann", area: "Steuerberatung"},
+"59": {name: "Kardell-Sothmann", area: "Handwerk"},
 "60": {name: "Deutsche Bahn", area: "Schienenverkehr"},
 "61": {name: "AOK", area: "Krankenversicherung"},
 "62": {name: "Göpfert", area: "Maschinenbau"},
