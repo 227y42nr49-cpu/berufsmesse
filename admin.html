@@ -3,117 +3,119 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Gewinnspiel</title>
+<title>Admin Stand-Check</title>
+
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
-<script src="data.js"></script>
+<script>
+const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cmhsc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I";
+const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
 
 <style>
-body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#1e3c72; color:white; margin:0; padding:30px; text-align:center;}
-.container { max-width:700px; margin:auto; background: rgba(255,255,255,0.05); padding:30px; border-radius:15px;}
-h1 { font-size:28px; margin-bottom:20px; }
-input[type="password"], input[type="number"] { padding:10px; width:60%; border-radius:10px; border:none; margin-bottom:10px;}
-button { padding:10px 20px; border-radius:10px; border:none; background:#00ff99; color:#1e3c72; font-weight:bold; cursor:pointer; margin:5px;}
-ul { text-align:left; margin-top:20px;}
-li { margin-bottom:5px;}
+body {
+  margin:0;
+  font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background: linear-gradient(135deg,#1e3c72,#2a5298);
+  color:white;
+  text-align:center;
+}
+.container { padding:30px 20px; }
+.card {
+  background:white; color:#333; border-radius:20px; padding:30px; margin-top:30px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.25);
+  animation:fadeIn 0.6s ease-in-out;
+  max-width:600px; margin-left:auto; margin-right:auto;
+}
+h1 { font-size:24px; margin-top:0; }
+input[type="password"] { padding:10px; width:60%; border-radius:10px; border:none; margin-top:15px; }
+.button {
+  display:inline-block; margin-top:15px; padding:12px 20px; border-radius:30px;
+  background:#2a5298; color:white; text-decoration:none; font-weight:bold; transition:0.3s; cursor:pointer;
+}
+.button:hover { background:#1e3c72; }
+table { width:100%; border-collapse:collapse; margin-top:20px; }
+th,td { padding:10px; border:1px solid #ccc; color:#333; text-align:left; }
+@keyframes fadeIn { from {opacity:0; transform: translateY(10px);} to {opacity:1; transform:translateY(0);} }
 </style>
 </head>
+
 <body>
 <div class="container">
-<h1>Admin Gewinnspiel</h1>
+<h1>🔒 Admin Stand-Check</h1>
 
-<!-- Login -->
-<div id="loginDiv">
-<p>Passwort eingeben:</p>
-<input type="password" id="adminPassword" placeholder="Passwort">
-<br>
-<button onclick="checkPassword()">Login</button>
+<div class="card" id="loginCard">
+  <p>Bitte Passwort eingeben:</p>
+  <input type="password" id="adminPassword" placeholder="Passwort"/>
+  <div class="button" id="loginBtn">Einloggen</div>
+  <p id="loginStatus" style="color:red;"></p>
 </div>
 
-<!-- Admin Content -->
-<div id="adminContent" style="display:none;">
-<h2>Teilnehmer & Besuche</h2>
-<ul id="participantList"></ul>
-
-<h2>Gewinner ziehen</h2>
-<input type="number" id="minStands" value="10" style="width:60px;"> Stände mindestens besucht
-<br>
-<input type="number" id="numWinners" value="1" style="width:60px;"> Gewinner
-<br><br>
-<button onclick="drawWinners()">Ziehung starten</button>
-<ul id="winnerList"></ul>
+<div class="card" id="adminContent" style="display:none;">
+  <h2>Teilnehmer & Besuche</h2>
+  <div id="participants"></div>
+  <div style="margin-top:20px;">
+    <input type="number" id="minStands" value="10" style="width:60px;"/>
+    <span>Minimale Stände für Gewinner</span>
+    <div class="button" id="drawWinnerBtn">🎉 Gewinner ziehen</div>
+    <div id="winnerOutput" style="margin-top:15px; font-weight:bold; color:green;"></div>
+  </div>
 </div>
 
 <script>
-const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
-const supabase = Supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const PASSWORD = "Messe2026gho!";
-let visits = [];
-
-// Login prüfen
-function checkPassword(){
-  const val=document.getElementById("adminPassword").value;
-  if(val===PASSWORD){
-    document.getElementById("loginDiv").style.display="none";
+// 1️⃣ Passwortschutz
+document.getElementById("loginBtn").addEventListener("click",()=>{
+  const pw = document.getElementById("adminPassword").value;
+  if(pw==="Messe2026gho!"){
+    document.getElementById("loginCard").style.display="none";
     document.getElementById("adminContent").style.display="block";
-    loadVisits();
-  }else{
-    alert("Falsches Passwort!");
+    loadParticipants();
+  } else {
+    document.getElementById("loginStatus").innerText="❌ Falsches Passwort";
   }
-}
+});
 
-// Teilnehmer laden
-async function loadVisits(){
-  const { data, error } = await supabase.from('visits').select('*');
-  if(error){ console.error("Fehler beim Laden:", error); return; }
-  visits = data;
+// 2️⃣ Teilnehmer laden
+async function loadParticipants(){
+  const { data, error } = await supabase
+    .from('visits')
+    .select('*');
 
+  if(error){ console.error(error); return; }
+
+  // Gruppieren nach participant_id
   const participants = {};
-  data.forEach(v=>{
-    if(!participants[v.participant_id]) participants[v.participant_id]=[];
-    participants[v.participant_id].push(v.stand_id);
+  data.forEach(row=>{
+    if(!participants[row.participant_id]) participants[row.participant_id]=[];
+    participants[row.participant_id].push(row.stand_id);
   });
 
-  const listEl = document.getElementById("participantList");
-  listEl.innerHTML="";
-  for(const pid in participants){
-    const li=document.createElement("li");
-    li.textContent=`${pid} → ${participants[pid].length} Stände: ${participants[pid].map(sid=>stands[sid]?.name||sid).join(", ")}`;
-    listEl.appendChild(li);
-  }
+  const container = document.getElementById("participants");
+  container.innerHTML = "<table><tr><th>Teilnehmer-ID</th><th>Besuchte Stände (#)</th></tr>"+
+    Object.keys(participants).map(pid=>`<tr><td>${pid}</td><td>${participants[pid].join(", ")}</td></tr>`).join("")+
+    "</table>";
+
+  window.participantsData = participants; // global für Gewinnerziehen
 }
 
-// Gewinner ziehen
-function drawWinners(){
-  const minStands=parseInt(document.getElementById("minStands").value);
-  const numWinners=parseInt(document.getElementById("numWinners").value);
+// 3️⃣ Gewinner ziehen
+document.getElementById("drawWinnerBtn").addEventListener("click",()=>{
+  const minStands = parseInt(document.getElementById("minStands").value) || 10;
+  const eligible = Object.entries(window.participantsData || {})
+    .filter(([pid, stands])=>stands.length>=minStands)
+    .map(([pid])=>pid);
 
-  const participants = {};
-  visits.forEach(v=>{
-    if(!participants[v.participant_id]) participants[v.participant_id]=[];
-    participants[v.participant_id].push(v.stand_id);
-  });
-
-  const eligible = Object.keys(participants).filter(pid=>participants[pid].length>=minStands);
-  if(eligible.length===0){ alert("Keine Teilnehmer mit genügend besuchten Ständen!"); return; }
-
-  const winners = [];
-  const copy=[...eligible];
-  for(let i=0;i<numWinners;i++){
-    if(copy.length===0) break;
-    const idx=Math.floor(Math.random()*copy.length);
-    winners.push(copy[idx]);
-    copy.splice(idx,1);
+  if(eligible.length===0){
+    document.getElementById("winnerOutput").innerText="❌ Keine Teilnehmer erfüllen die Mindestanforderung";
+    return;
   }
 
-  const winnerEl = document.getElementById("winnerList");
-  winnerEl.innerHTML="";
-  winners.forEach(w=>{
-    const li=document.createElement("li");
-    li.textContent=`${w} → ${participants[w].length} Stände`;
-    winnerEl.appendChild(li);
-  });
-}
+  // Zufällig Gewinner auswählen (1 Gewinner)
+  const winner = eligible[Math.floor(Math.random()*eligible.length)];
+  document.getElementById("winnerOutput").innerText=`🏆 Gewinner: ${winner}`;
+});
 </script>
+
 </body>
 </html>
