@@ -3,237 +3,166 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin: Messe-Gewinnspiel</title>
+<title>Admin – Gewinnspiel</title>
 
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
 
 <style>
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg,#1e3c72,#2a5298);
-  color: #333;
+  background: #1e3c72;
+  color: white;
   margin: 0;
-  padding: 20px;
+  padding: 50px 20px;
+  text-align: center;
+}
+
+.container {
+  max-width: 700px;
+  margin: auto;
+  background: rgba(255,255,255,0.1);
+  padding: 30px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
 }
 
 h1 {
-  text-align: center;
-  color: white;
-  margin-bottom: 30px;
-}
-
-.login-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 100px;
-}
-
-input[type=password] {
-  padding: 10px 12px;
-  margin: 5px;
-  border-radius: 8px;
-  border: none;
-  width: 250px;
-  font-size: 16px;
+  margin-bottom: 20px;
 }
 
 button {
-  padding: 10px 18px;
-  margin: 5px;
-  border-radius: 8px;
+  padding: 10px 20px;
+  margin: 10px;
+  border-radius: 20px;
   border: none;
+  background: #00ff99;
+  color: #1e3c72;
   font-weight: bold;
   cursor: pointer;
-  background: #2a5298;
-  color: white;
   transition: 0.3s;
 }
 
 button:hover {
-  background: #1e3c72;
-}
-
-#admin-content {
-  display: none;
+  background: #00cc77;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
-  background: white;
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 
 th, td {
-  padding: 12px;
+  padding: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
   text-align: left;
 }
 
 th {
-  background: #2a5298;
-  color: white;
-}
-
-tr.visited td {
-  background: #d1e7dd;
-}
-
-#winner p {
-  font-size: 18px;
-  font-weight: bold;
-  color: #155724;
-  background: #d4edda;
-  padding: 8px 12px;
-  border-radius: 10px;
-  margin: 5px 0;
+  background: rgba(255,255,255,0.2);
 }
 </style>
 </head>
 <body>
 
-<h1>Admin: Messe-Gewinnspiel</h1>
+<div class="container">
+  <h1>Admin – Gewinnspiel</h1>
 
-<div id="login" class="login-container">
-  <input type="password" id="passwordInput" placeholder="Passwort eingeben">
-  <button onclick="checkPassword()">Login</button>
-  <p style="color:white; margin-top:10px;">Gib dein Admin-Passwort ein</p>
-</div>
-
-<div id="admin-content">
-  <div style="text-align:center; margin-bottom:10px;">
-    <button onclick="loadData()">Daten laden</button>
-    <label for="maxWinnersInput" style="color:white; font-weight:bold;">Max. Gewinner:</label>
-    <input type="number" id="maxWinnersInput" value="3" min="1">
-    <button onclick="drawWinner()">Gewinner ziehen</button>
-    <button onclick="exportCSV()">Als CSV exportieren</button>
+  <div id="loginDiv">
+    <p>Passwort eingeben:</p>
+    <input type="password" id="adminPassword">
+    <button onclick="checkPassword()">Login</button>
+    <p id="loginStatus" style="color:yellow;"></p>
   </div>
 
-  <table id="table">
-    <thead>
-      <tr>
-        <th>Teilnehmer-ID</th>
-        <th>Besuchte Stände</th>
-        <th>Anzahl</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div id="adminContent" style="display:none;">
+    <p><strong>Teilnehmer mit ≥ 10 besuchten Ständen werden als gewinnberechtigt betrachtet.</strong></p>
+    <button onclick="drawWinners()">Gewinner ziehen</button>
+    <p id="winnerList"></p>
 
-  <div id="winner" style="margin-top:20px;"></div>
+    <h2>Teilnehmerliste</h2>
+    <table>
+      <thead>
+        <tr><th>Teilnehmer-ID</th><th>Anzahl Besuche</th></tr>
+      </thead>
+      <tbody id="participantTable"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
-// Passwortprüfung
-const correctPassword = "Messe2026gho!";
-
-function checkPassword() {
-  const input = document.getElementById("passwordInput").value;
-  if(input === correctPassword){
-    document.getElementById("login").style.display = "none";
-    document.getElementById("admin-content").style.display = "block";
-  } else {
-    alert("Falsches Passwort!");
-  }
-}
-
-// Supabase Client
+// --- Supabase ---
 const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
 const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let allData = [];
-let remainingParticipants = [];
-
-// Daten laden
-async function loadData() {
-  const { data, error } = await supabase.from('visits').select('*');
-  if (error) {
-    alert("Fehler beim Laden: " + error.message);
-    return;
+// --- Passwortschutz ---
+function checkPassword() {
+  const pw = document.getElementById("adminPassword").value;
+  if(pw === "Messe2026gho!") {
+    document.getElementById("loginDiv").style.display = "none";
+    document.getElementById("adminContent").style.display = "block";
+    loadParticipants();
+  } else {
+    document.getElementById("loginStatus").innerText = "❌ Falsches Passwort!";
   }
-  allData = data;
-  remainingParticipants = [];
-  renderTable();
 }
 
-// Tabelle rendern
-function renderTable() {
-  const tbody = document.querySelector("#table tbody");
-  tbody.innerHTML = "";
-  const grouped = {};
-  allData.forEach(row => {
-    if (!grouped[row.participant_id]) grouped[row.participant_id] = [];
-    grouped[row.participant_id].push(row.stand_id);
+// --- Teilnehmer aus Supabase laden ---
+async function loadParticipants() {
+  const { data, error } = await supabase
+    .from('visits')
+    .select('participant_id');
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  // Teilnehmer zählen
+  const counts = {};
+  data.forEach(v => {
+    counts[v.participant_id] = (counts[v.participant_id] || 0) + 1;
   });
-  for (const [participant, stands] of Object.entries(grouped)) {
+
+  // Tabelle anzeigen
+  const tbody = document.getElementById("participantTable");
+  tbody.innerHTML = "";
+  for(const [id, count] of Object.entries(counts)){
     const tr = document.createElement("tr");
-    tr.className = stands.length > 0 ? "visited" : "";
-    tr.innerHTML = `
-      <td>${participant}</td>
-      <td>${stands.join(", ")}</td>
-      <td>${stands.length}</td>
-    `;
+    tr.innerHTML = `<td>${id}</td><td>${count}</td>`;
     tbody.appendChild(tr);
   }
+
+  window.participantCounts = counts; // global für Gewinnerziehung
 }
 
-// Gewinner ziehen
-function drawWinner() {
-  const maxWinners = parseInt(document.getElementById("maxWinnersInput").value);
+// --- Gewinner ziehen ---
+function drawWinners() {
+  const minVisits = 10;      // Mindestanzahl besuchter Stände
+  const numberOfWinners = 3; // Anzahl Gewinner
+  const eligible = Object.entries(window.participantCounts)
+    .filter(([id, count]) => count >= minVisits)
+    .map(([id]) => id);
 
-  const grouped = {};
-  allData.forEach(row => {
-    if (!grouped[row.participant_id]) grouped[row.participant_id] = [];
-    grouped[row.participant_id].push(row.stand_id);
-  });
-
-  if (remainingParticipants.length === 0) {
-    remainingParticipants = Object.entries(grouped)
-      .filter(([p, stands]) => stands.length >= 10)
-      .map(([p]) => p);
-  }
-
-  if (remainingParticipants.length === 0) {
-    alert("Keine Teilnehmer mit ≥10 besuchten Ständen oder alle Gewinner bereits gezogen!");
+  if(eligible.length === 0){
+    document.getElementById("winnerList").innerText = "Keine berechtigten Teilnehmer!";
     return;
   }
 
-  if (document.querySelectorAll("#winner p").length >= maxWinners) {
-    alert(`Es können maximal ${maxWinners} Gewinner gezogen werden.`);
-    return;
+  // Zufällige Gewinner ziehen
+  const winners = [];
+  const pool = [...eligible];
+  while(winners.length < Math.min(numberOfWinners, pool.length)){
+    const idx = Math.floor(Math.random() * pool.length);
+    winners.push(pool[idx]);
+    pool.splice(idx,1);
   }
 
-  const randomIndex = Math.floor(Math.random() * remainingParticipants.length);
-  const winner = remainingParticipants.splice(randomIndex, 1)[0];
-
-  const winnerDiv = document.getElementById("winner");
-  const p = document.createElement("p");
-  p.innerText = "🏆 Gewinner: " + winner;
-  winnerDiv.appendChild(p);
-}
-
-// CSV exportieren
-function exportCSV() {
-  const rows = [["Teilnehmer-ID", "Besuchte Stände", "Anzahl"]];
-  const grouped = {};
-  allData.forEach(row => {
-    if (!grouped[row.participant_id]) grouped[row.participant_id] = [];
-    grouped[row.participant_id].push(row.stand_id);
-  });
-  for (const [participant, stands] of Object.entries(grouped)) {
-    rows.push([participant, stands.join(";"), stands.length]);
-  }
-  const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-  const link = document.createElement("a");
-  link.setAttribute("href", encodeURI(csvContent));
-  link.setAttribute("download", "gewinnspiel.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  document.getElementById("winnerList").innerHTML = 
+    "🎉 Gewinner: <strong>" + winners.join("</strong>, <strong>") + "</strong>";
 }
 </script>
 
