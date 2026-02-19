@@ -3,7 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Berufsmesse Gewinnspiel</title>
+<title>Berufsmesse Fortschritt</title>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
+
+<!-- Stand-Daten -->
+<script src="data.js"></script>
+
+<script>
+  // 🔹 Supabase einrichten
+  const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I";
+  const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // 🔹 Teilnehmer-ID erzeugen oder laden
+  if (!localStorage.getItem("participantId")) {
+    const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    localStorage.setItem("participantId", id);
+  }
+  const participantId = localStorage.getItem("participantId");
+</script>
 
 <style>
 body {
@@ -15,42 +35,55 @@ body {
 }
 
 .container {
-  padding: 30px 20px;
-}
-
-.card {
-  background: white;
-  color: #333;
-  border-radius: 20px;
-  padding: 30px;
-  margin-top: 30px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  padding: 20px;
 }
 
 h1 {
+  margin-top: 20px;
   font-size: 26px;
-  margin-top: 40px;
 }
 
-.progress-circle {
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  background: #f0f0f0;
+.id-box {
+  background: #fff;
+  color: #333;
+  padding: 15px 20px;
+  border-radius: 12px;
   margin: 20px auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 42px;
+  width: fit-content;
   font-weight: bold;
-  color: #2a5298;
-  box-shadow: inset 0 0 15px rgba(0,0,0,0.1);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.progress-card {
+  background: white;
+  color: #333;
+  border-radius: 20px;
+  padding: 20px;
+  margin: 15px auto;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+}
+
+.progress-bar {
+  background: #eee;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progress-fill {
+  background: #2a5298;
+  height: 20px;
+  width: 0%;
+  border-radius: 20px;
+  transition: width 0.4s ease-in-out;
 }
 
 .button {
   display: inline-block;
-  padding: 14px 24px;
   margin-top: 20px;
+  padding: 12px 24px;
   border-radius: 30px;
   background: #2a5298;
   color: white;
@@ -62,52 +95,53 @@ h1 {
 .button:hover {
   background: #1e3c72;
 }
-
-.small {
-  font-size: 13px;
-  color: #666;
-  margin-top: 15px;
-}
 </style>
-</head>
 
+</head>
 <body>
 
 <div class="container">
 
-<h1>🎉 Berufsmesse Gewinnspiel</h1>
+<h1>🚀 Dein Messe-Fortschritt</h1>
 
-<div class="card">
+<!-- Teilnehmer-ID -->
+<div class="id-box">
+  Deine Teilnehmer-ID: <strong id="participantId"></strong>
+  <br>
+  <button onclick="navigator.clipboard.writeText(participantId)">📋 ID kopieren</button>
+</div>
 
-  <h2>Dein Fortschritt</h2>
-
-  <div class="progress-circle">
-    <span id="counter">0</span>
+<!-- Fortschritt -->
+<div class="progress-card">
+  <div>Besuchte Stände: <span id="visitedCount">0</span> / <span id="totalStands">0</span></div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
   </div>
-
-  <p>besuchte Stände</p>
-
-  <div class="small">
-    Je mehr Stände du besuchst,<br>
-    desto höher deine Gewinnchance!
-  </div>
-
 </div>
 
 </div>
 
 <script>
+// 1️⃣ Teilnehmer-ID auf Seite anzeigen
+document.getElementById("participantId").innerText = participantId;
 
-// Teilnehmer-ID erzeugen (falls nicht vorhanden)
-if (!localStorage.getItem("participantId")) {
-  const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-  localStorage.setItem("participantId", id);
+// 2️⃣ Fortschritt berechnen
+const totalStands = Object.keys(stands).length;
+document.getElementById("totalStands").innerText = totalStands;
+
+function updateProgress() {
+  const visits = JSON.parse(localStorage.getItem("visits")) || [];
+  const count = visits.length;
+  document.getElementById("visitedCount").innerText = count;
+
+  const percent = (count / totalStands) * 100;
+  document.getElementById("progressFill").style.width = percent + "%";
 }
 
-// Besuche laden
-const visits = JSON.parse(localStorage.getItem("visits")) || [];
-document.getElementById("counter").innerText = visits.length;
+// 3️⃣ Update beim Laden
+updateProgress();
 
+// Optional: wenn Stände hinzugefügt werden, einfach localStorage updaten & updateProgress() aufrufen
 </script>
 
 </body>
