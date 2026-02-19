@@ -5,116 +5,66 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stand-Check</title>
 
-<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
-<!-- Stand-Daten -->
 <script src="data.js"></script>
 
 <style>
-body {
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background: linear-gradient(135deg,#1e3c72,#2a5298);
-  color:white;
-  margin:0;
-  text-align:center;
-  padding:50px 20px;
-}
-.container {
-  background: rgba(255,255,255,0.1);
-  border-radius:20px;
-  padding:40px 30px;
-  max-width:400px;
-  margin:auto;
-  box-shadow:0 10px 25px rgba(0,0,0,0.3);
-  backdrop-filter:blur(10px);
-}
-h1 { font-size:28px; margin-bottom:30px; }
-.company { font-size:22px; font-weight:bold; margin-bottom:10px; }
-.area { font-size:16px; color:#ccc; margin-bottom:20px; }
-#status { margin-top:15px; font-weight:bold; }
-#participantId { color:#00ff99; font-weight:bold; }
-.button {
-  display:inline-block;
-  margin-top:25px;
-  padding:14px 24px;
-  border-radius:30px;
-  background:#00ff99;
-  color:#1e3c72;
-  text-decoration:none;
-  font-weight:bold;
-  transition:0.3s;
-}
-.button:hover { background:#00cc77; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:linear-gradient(135deg,#1e3c72,#2a5298); color:white; text-align:center; margin:0; padding:50px 20px;}
+.container { background:rgba(255,255,255,0.1); padding:40px; border-radius:20px; max-width:400px; margin:auto; box-shadow:0 10px 25px rgba(0,0,0,0.3);}
+h1 { font-size:28px; margin-bottom:20px; }
+.company { font-weight:bold; font-size:22px; margin-bottom:10px;}
+.area { font-size:16px; color:#ccc; margin-bottom:20px;}
+.status { font-weight:bold; margin-top:15px; color:#00ff99;}
 </style>
 </head>
 <body>
-
 <div class="container">
 <h1>🎯 Stand gescannt</h1>
 <div class="company" id="company"></div>
 <div class="area" id="area"></div>
 <div>Stand-Nr.: <strong id="standNum"></strong></div>
-<div>Deine Teilnehmer-ID: <strong id="participantId">Lädt…</strong></div>
-<div id="status"></div>
-<a href="index.html" class="button">🔙 Zurück zum Fortschritt</a>
+<div id="status" class="status"></div>
+<a href="index.html" style="color:#00ff99; display:block; margin-top:20px;">🔙 Zurück zum Fortschritt</a>
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", async function() {
+document.addEventListener("DOMContentLoaded", async function(){
 
-  // 1️⃣ Teilnehmer-ID aus localStorage oder neu erzeugen
-  let participantId = localStorage.getItem("participantId");
-  if(!participantId){
-    participantId = "T-" + Math.random().toString(36).substring(2,8).toUpperCase();
-    localStorage.setItem("participantId", participantId);
-  }
-  document.getElementById("participantId").innerText = participantId;
+const params = new URLSearchParams(window.location.search);
+const sid = params.get("sid");
+if(!sid){ alert("Ungültiger QR-Code"); return; }
 
-  // 2️⃣ Stand-ID aus URL
-  const params = new URLSearchParams(window.location.search);
-  const sid = params.get("sid");
-  if(!sid){ alert("Ungültiger QR-Code"); throw new Error("Keine Stand-ID"); }
+const standData = stands[sid];
+if(!standData){ alert("Stand unbekannt"); return; }
 
-  // 3️⃣ Standdaten aus data.js
-  const standData = stands[sid];
-  if(!standData){ alert("Stand nicht gefunden"); throw new Error("Stand nicht gefunden"); }
+document.getElementById("company").innerText = standData.name;
+document.getElementById("area").innerText = standData.area;
+document.getElementById("standNum").innerText = sid;
 
-  document.getElementById("company").innerText = standData.name;
-  document.getElementById("area").innerText = standData.area;
-  document.getElementById("standNum").innerText = sid;
+// Teilnehmer-ID
+let participantId = localStorage.getItem("participantId");
+if(!participantId){
+  participantId = "T-"+Math.random().toString(36).substring(2,8).toUpperCase();
+  localStorage.setItem("participantId", participantId);
+}
 
-  // 4️⃣ Supabase Client
-  const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
-  const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Supabase
+const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
+const supabase = Supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-  // 5️⃣ Supabase speichern (nur wenn Stand noch nicht besucht)
-  const { data: existing, error: selErr } = await supabase
-    .from('visits')
-    .select('*')
-    .eq('participant_id', participantId)
-    .eq('stand_id', parseInt(sid));
+// Prüfen, ob Stand schon besucht
+const { data: existing } = await supabase.from('visits').select('*')
+  .eq('participant_id', participantId)
+  .eq('stand_id', parseInt(sid));
 
-  if(selErr){ console.error(selErr); document.getElementById("status").innerText="❌ Fehler"; return; }
-
-  if(existing.length>0){
-    document.getElementById("status").innerText="ℹ Dieser Stand wurde bereits gezählt.";
-    return;
-  }
-
-  const { error: insErr } = await supabase
-    .from('visits')
-    .insert([{ participant_id: participantId, stand_id: parseInt(sid) }]);
-
-  if(insErr){
-    console.error(insErr);
-    document.getElementById("status").innerText="❌ Fehler beim Speichern";
-  } else {
-    document.getElementById("status").innerText="✅ Besuch erfolgreich gespeichert!";
-  }
-
+if(existing.length>0){
+  document.getElementById("status").innerText = "ℹ Stand wurde bereits gezählt.";
+} else {
+  const { error } = await supabase.from('visits').insert([{ participant_id: participantId, stand_id: parseInt(sid) }]);
+  document.getElementById("status").innerText = error ? "❌ Fehler beim Speichern" : "✅ Besuch gespeichert!";
+}
 });
 </script>
-
 </body>
 </html>
