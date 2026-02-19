@@ -3,96 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin – Gewinnspiel</title>
+<title>Admin Gewinnspiel</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
+<script src="data.js"></script>
+
 <style>
-body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#1e3c72; color:white; margin:0; padding:50px 20px; text-align:center;}
-.container{max-width:700px;margin:auto;background:rgba(255,255,255,0.1);padding:30px;border-radius:20px;backdrop-filter:blur(10px);box-shadow:0 10px 25px rgba(0,0,0,0.3);}
-h1{margin-bottom:20px;}
-button{padding:10px 20px;margin:10px;border-radius:20px;border:none;background:#00ff99;color:#1e3c72;font-weight:bold;cursor:pointer;transition:0.3s;}
-button:hover{background:#00cc77;}
-table{width:100%;border-collapse:collapse;margin-top:20px;}
-th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.3);text-align:left;}
-th{background:rgba(255,255,255,0.2);}
+body {
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#1e3c72;
+  color:white;
+  margin:0;
+  padding:30px 20px;
+  text-align:center;
+}
+.container {
+  max-width:600px;
+  margin:auto;
+  background: rgba(255,255,255,0.05);
+  padding:30px;
+  border-radius:15px;
+}
+h1 { font-size:28px; margin-bottom:20px; }
+input[type="password"] { padding:10px; width:60%; border-radius:10px; border:none; margin-bottom:10px; }
+button { padding:10px 20px; border-radius:10px; border:none; background:#00ff99; color:#1e3c72; font-weight:bold; cursor:pointer; }
+button:hover { background:#00cc77; }
+ul { text-align:left; margin-top:20px; }
+li { margin-bottom:5px; }
 </style>
 </head>
 <body>
+
 <div class="container">
-<h1>Admin – Gewinnspiel</h1>
+<h1>Admin Gewinnspiel</h1>
+
 <div id="loginDiv">
-<p>Passwort eingeben:</p>
-<input type="password" id="adminPassword">
-<button onclick="checkPassword()">Login</button>
-<p id="loginStatus" style="color:yellow;"></p>
+  <p>Passwort eingeben:</p>
+  <input type="password" id="adminPassword" placeholder="Passwort">
+  <br>
+  <button onclick="checkPassword()">Login</button>
 </div>
 
 <div id="adminContent" style="display:none;">
-<p><strong>Teilnehmer mit ≥ 10 Ständen sind berechtigt</strong></p>
-<button onclick="drawWinners()">Gewinner ziehen</button>
-<p id="winnerList"></p>
-<button onclick="exportCSV()">Liste herunterladen</button>
+  <h2>Teilnehmer & Besuche</h2>
+  <ul id="participantList"></ul>
 
-<h2>Teilnehmerliste</h2>
-<table>
-<thead>
-<tr><th>Teilnehmer-ID</th><th>Anzahl Besuche</th></tr>
-</thead>
-<tbody id="participantTable"></tbody>
-</table>
-</div>
+  <h2>Gewinner ziehen</h2>
+  <input type="number" id="minStands" value="10" style="width:60px;"> Stände mindestens besucht
+  <br>
+  <input type="number" id="numWinners" value="1" style="width:60px;"> Gewinner
+  <br><br>
+  <button onclick="drawWinners()">Ziehung starten</button>
+  <ul id="winnerList"></ul>
 </div>
 
 <script>
 const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
 const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const PASSWORD = "Messe2026gho!";
 
-function checkPassword(){
-  const pw = document.getElementById("adminPassword").value;
-  if(pw==="Messe2026gho!"){
-    document.getElementById("loginDiv").style.display="none";
-    document.getElementById("adminContent").style.display="block";
-    loadParticipants();
-  } else { document.getElementById("loginStatus").innerText="❌ Falsches Passwort!"; }
+let visits = [];
+
+async function loadVisits() {
+  const { data, error } = await supabase.from('visits').select('*');
+  if(error){ console.error(error); return; }
+  visits = data;
+
+  const participants = {};
+  data.forEach(v=>{
+    if(!participants[v.participant_id]) participants[v.participant_id] = [];
+    participants[v.participant_id].push(v.stand_id);
+  });
+
+  const listEl = document.getElementById("participantList");
+  listEl.innerHTML = "";
+  for(const pid in participants){
+    const li = document.createElement("li");
+    li.textContent = `${pid} → ${participants[pid].length} Stände: ${participants[pid].map(sid=>stands[sid]?.name||sid).join(", ")}`;
+    listEl.appendChild(li);
+  }
 }
 
-async function loadParticipants(){
-  const { data, error } = await supabase.from('visits').select('participant_id');
-  if(error){ console.error(error); return; }
-  const counts={};
-  data.forEach(v=>counts[v.participant_id]=(counts[v.participant_id]||0)+1);
-  const tbody = document.getElementById("participantTable");
-  tbody.innerHTML="";
-  for(const [id,count] of Object.entries(counts)){
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${id}</td><td>${count}</td>`;
-    tbody.appendChild(tr);
+function checkPassword(){
+  const val = document.getElementById("adminPassword").value;
+  if(val === PASSWORD){
+    document.getElementById("loginDiv").style.display="none";
+    document.getElementById("adminContent").style.display="block";
+    loadVisits();
+  } else {
+    alert("Falsches Passwort!");
   }
-  window.participantCounts = counts;
 }
 
 function drawWinners(){
-  const minVisits=10, numberOfWinners=3;
-  const eligible=Object.entries(window.participantCounts).filter(([id,count])=>count>=minVisits).map(([id])=>id);
-  if(eligible.length===0){ document.getElementById("winnerList").innerText="Keine berechtigten Teilnehmer!"; return;}
-  const winners=[];
-  const pool=[...eligible];
-  while(winners.length<Math.min(numberOfWinners,pool.length)){
-    const idx=Math.floor(Math.random()*pool.length);
-    winners.push(pool[idx]);
-    pool.splice(idx,1);
-  }
-  document.getElementById("winnerList").innerHTML="🎉 Gewinner: <strong>"+winners.join("</strong>, <strong>")+"</strong>";
-}
+  const minStands = parseInt(document.getElementById("minStands").value);
+  const numWinners = parseInt(document.getElementById("numWinners").value);
 
-function exportCSV(){
-  const counts=window.participantCounts; if(!counts) return;
-  let csv="Teilnehmer-ID,Anzahl Besuche\n";
-  for(const [id,count] of Object.entries(counts)) csv+=`${id},${count}\n`;
-  const blob=new Blob([csv],{type:"text/csv"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a"); a.href=url; a.download="teilnehmer_liste.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  // Teilnehmer filtern
+  const participants = {};
+  visits.forEach(v=>{
+    if(!participants[v.participant_id]) participants[v.participant_id] = [];
+    participants[v.participant_id].push(v.stand_id);
+  });
+
+  const eligible = Object.keys(participants).filter(pid=>participants[pid].length >= minStands);
+  if(eligible.length===0){ alert("Keine Teilnehmer mit genügend besuchten Ständen!"); return; }
+
+  // Gewinner zufällig ziehen
+  const winners = [];
+  const copy = [...eligible];
+  for(let i=0;i<numWinners;i++){
+    if(copy.length===0) break;
+    const idx = Math.floor(Math.random()*copy.length);
+    winners.push(copy[idx]);
+    copy.splice(idx,1);
+  }
+
+  const winnerEl = document.getElementById("winnerList");
+  winnerEl.innerHTML="";
+  winners.forEach(w=>{
+    const li = document.createElement("li");
+    li.textContent = `${w} → ${participants[w].length} Stände`;
+    winnerEl.appendChild(li);
+  });
 }
 </script>
+
 </body>
 </html>
