@@ -3,99 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Berufsmesse Fortschritt</title>
-
-<script src="data.js"></script>
+<title>Fortschritt Messe</title>
 
 <style>
 body {
-  margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  background: linear-gradient(135deg,#1e3c72,#2a5298);
   color: white;
+  margin: 0;
   text-align: center;
+  padding: 50px 20px;
 }
 
 .container {
-  padding: 30px 20px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 40px 30px;
+  max-width: 400px;
+  margin: auto;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  backdrop-filter: blur(10px);
 }
 
 h1 {
   font-size: 28px;
-  margin-top: 40px;
+  margin-bottom: 30px;
 }
 
-#participantId {
+p {
   font-size: 20px;
-  margin-top: 10px;
+  margin: 15px 0;
+}
+
+strong {
+  font-size: 24px;
+  color: #ffd700;
+}
+
+#visitedCount {
+  font-size: 48px;
   font-weight: bold;
-  background: rgba(255,255,255,0.2);
-  padding: 10px 20px;
-  border-radius: 15px;
-  display: inline-block;
-}
-
-.list {
-  margin-top: 30px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.card {
-  background: white;
-  color: #333;
-  border-radius: 15px;
-  padding: 20px;
-  margin: 10px;
-  width: 160px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  text-align: center;
-}
-
-.visited {
-  background: #2a5298;
-  color: white;
+  color: #00ff99;
 }
 </style>
 </head>
 <body>
 
 <div class="container">
-<h1>📍 Dein Messe-Fortschritt</h1>
-
-<div id="participantId"></div> <!-- ID sichtbar -->
-
-<div class="list" id="standList"></div>
+  <h1>🎯 Dein Fortschritt</h1>
+  <p>Besuchte Stände:</p>
+  <p><span id="visitedCount">0</span> / 60</p>
+  <p>Deine Teilnehmer-ID: <strong id="participantId"></strong></p>
 </div>
 
 <script>
-// Teilnehmer-ID laden oder erstellen
+// Teilnehmer-ID erzeugen oder abrufen
 if (!localStorage.getItem("participantId")) {
   const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
   localStorage.setItem("participantId", id);
 }
 const participantId = localStorage.getItem("participantId");
+document.getElementById("participantId").innerText = participantId;
 
-// ID sichtbar machen
-document.getElementById("participantId").innerText = "Deine ID: " + participantId;
-
-// Besuche aus localStorage laden
+// Besuche zählen
 let visits = JSON.parse(localStorage.getItem("visits")) || [];
-const standListDiv = document.getElementById("standList");
-
-for (const [id, info] of Object.entries(stands)) {
-  const card = document.createElement("div");
-  card.className = "card";
-  if (visits.includes(id)) card.classList.add("visited");
-
-  card.innerHTML = `
-    <strong>${info.name}</strong><br>
-    <small>${info.area}</small><br>
-    Stand-Nr.: ${id}
-  `;
-  standListDiv.appendChild(card);
-}
+document.getElementById("visitedCount").innerText = visits.length;
 </script>
 
 </body>
