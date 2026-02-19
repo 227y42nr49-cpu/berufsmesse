@@ -3,47 +3,118 @@
 <head>
 <meta charset="UTF-8">
 <title>Berufsmesse Stand</title>
+
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
+
+<!-- Stand-Daten -->
 <script src="data.js"></script>
+
 <script>
   const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I";
+  const SUPABASE_KEY = "DEIN_PUBLIC_ANON_KEY_HIER_EINFÜGEN";
   const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 40px;
+}
+button {
+  padding: 12px 20px;
+  font-size: 16px;
+  margin-top: 20px;
+}
+</style>
+
 </head>
 <body>
+
 <h1>🎯 Stand-Check</h1>
 
 <p>
-Unternehmen: <span id="company"></span><br>
+Unternehmen: <strong><span id="company"></span></strong><br>
 Bereich: <span id="area"></span><br>
 Stand-Nr.: <span id="standNum"></span>
 </p>
 
+<p id="status"></p>
+
 <a href="index.html">🔙 Zurück zum Fortschritt</a>
 
 <script>
+
+// ----------------------------
+// 1️⃣ Stand-ID aus URL holen
+// ----------------------------
 const params = new URLSearchParams(window.location.search);
 const sid = params.get("sid");
-if(!sid){ alert("Ungültiger QR-Code"); }
 
+if (!sid) {
+  alert("Ungültiger QR-Code");
+  throw new Error("Keine Stand-ID");
+}
+
+// ----------------------------
+// 2️⃣ Teilnehmer-ID erzeugen (falls nicht vorhanden)
+// ----------------------------
+if (!localStorage.getItem("participantId")) {
+  const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  localStorage.setItem("participantId", id);
+}
+
+const participantId = localStorage.getItem("participantId");
+
+// ----------------------------
+// 3️⃣ Stand-Daten anzeigen
+// ----------------------------
 const standData = stands[sid];
-if(!standData){ alert("Unbekannter Stand"); }
+
+if (!standData) {
+  alert("Unbekannter Stand");
+  throw new Error("Stand nicht gefunden");
+}
 
 document.getElementById("company").innerText = standData.name;
 document.getElementById("area").innerText = standData.area;
 document.getElementById("standNum").innerText = sid;
 
-const participantId = localStorage.getItem("participantId");
+// ----------------------------
+// 4️⃣ Lokal speichern (für Fortschritt)
+// ----------------------------
+let visits = JSON.parse(localStorage.getItem("visits")) || [];
 
-async function saveStand(){
-    const { data, error } = await supabase
-        .from('visits')
-        .insert([{ participant_id: participantId, stand_id: parseInt(sid) }]);
-    if(error) console.error("Fehler beim Speichern:", error);
+if (!visits.includes(sid)) {
+  visits.push(sid);
+  localStorage.setItem("visits", JSON.stringify(visits));
+}
+
+// ----------------------------
+// 5️⃣ In Supabase speichern
+// ----------------------------
+async function saveStand() {
+
+  const { error } = await supabase
+    .from('visits')
+    .insert([
+      { participant_id: participantId, stand_id: parseInt(sid) }
+    ]);
+
+  if (error) {
+    console.error("Fehler beim Speichern:", error);
+    document.getElementById("status").innerText =
+      "❌ Fehler beim Speichern";
+  } else {
+    document.getElementById("status").innerText =
+      "✅ Besuch erfolgreich gespeichert!";
+  }
 }
 
 saveStand();
+
 </script>
+
 </body>
 </html>
