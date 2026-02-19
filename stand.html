@@ -5,10 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stand-Check</title>
 
-<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
-
-<!-- Stand-Daten -->
 <script src="data.js"></script>
 
 <style>
@@ -20,7 +17,6 @@ body {
   text-align: center;
   padding: 50px 20px;
 }
-
 .container {
   background: rgba(255,255,255,0.1);
   border-radius: 20px;
@@ -30,44 +26,16 @@ body {
   box-shadow: 0 10px 25px rgba(0,0,0,0.3);
   backdrop-filter: blur(10px);
 }
-
-h1 {
-  font-size: 28px;
-  margin-bottom: 30px;
-}
-
-.company {
-  font-size: 22px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.area {
-  font-size: 16px;
-  color: #ccc;
-  margin-bottom: 20px;
-}
-
-#status {
-  margin-top: 15px;
-  font-weight: bold;
-}
-
+h1 { font-size:28px; margin-bottom:30px; }
+.company { font-size:22px; font-weight:bold; margin-bottom:10px; }
+.area { font-size:16px; color:#ccc; margin-bottom:20px; }
+#status { margin-top:15px; font-weight:bold; }
 .button {
-  display: inline-block;
-  margin-top: 25px;
-  padding: 14px 24px;
-  border-radius: 30px;
-  background: #2a5298;
-  color: white;
-  text-decoration: none;
-  font-weight: bold;
-  transition: 0.3s;
+  display:inline-block; margin-top:25px; padding:14px 24px;
+  border-radius:30px; background:#2a5298; color:white; text-decoration:none;
+  font-weight:bold; transition:0.3s;
 }
-
-.button:hover {
-  background: #1e3c72;
-}
+.button:hover { background:#1e3c72; }
 </style>
 </head>
 <body>
@@ -77,73 +45,57 @@ h1 {
   <div class="company" id="company"></div>
   <div class="area" id="area"></div>
   <div>Stand-Nr.: <strong id="standNum"></strong></div>
+  <div>Deine ID: <strong id="participantId"></strong></div>
   <div id="status"></div>
   <a href="index.html" class="button">🔙 Zurück zum Fortschritt</a>
 </div>
 
 <script>
-// --- Supabase ---
+// Supabase Client
 const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
 const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- Stand-ID aus URL ---
+// Stand-ID aus URL
 const params = new URLSearchParams(window.location.search);
 const sid = params.get("sid");
-if (!sid) {
-  alert("Ungültiger QR-Code");
-  throw new Error("Keine Stand-ID");
-}
+if (!sid) { alert("Ungültiger QR-Code"); throw new Error("Keine Stand-ID"); }
 
-// --- Teilnehmer-ID abrufen ---
+// Teilnehmer-ID erzeugen oder abrufen
 if (!localStorage.getItem("participantId")) {
-  const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  const id = "T-" + Math.random().toString(36).substring(2,8).toUpperCase();
   localStorage.setItem("participantId", id);
 }
 const participantId = localStorage.getItem("participantId");
+document.getElementById("participantId").innerText = participantId;
 
-// --- Standdaten anzeigen ---
+// Standdaten anzeigen
 const standData = stands[sid];
-if (!standData) {
-  alert("Unbekannter Stand");
-  throw new Error("Stand nicht gefunden");
-}
-
+if (!standData) { alert("Unbekannter Stand"); throw new Error("Stand nicht gefunden"); }
 document.getElementById("company").innerText = standData.name;
 document.getElementById("area").innerText = standData.area;
 document.getElementById("standNum").innerText = sid;
 
-// --- Besuch in Supabase speichern ---
+// Besuch speichern
 async function saveStand() {
-  // Prüfen, ob Stand schon besucht wurde
   const { data: existing, error: selectError } = await supabase
-    .from('visits')
-    .select('*')
+    .from('visits').select('*')
     .eq('participant_id', participantId)
     .eq('stand_id', parseInt(sid));
 
-  if (selectError) {
-    console.error(selectError);
-    document.getElementById("status").innerText = "❌ Fehler beim Laden";
-    return;
-  }
+  if(selectError){ console.error(selectError); document.getElementById("status").innerText="❌ Fehler"; return; }
 
-  if (existing.length > 0) {
+  if(existing.length > 0){
     document.getElementById("status").innerText = "ℹ Dieser Stand wurde bereits gezählt.";
     return;
   }
 
-  // Neu speichern
   const { error: insertError } = await supabase
     .from('visits')
     .insert([{ participant_id: participantId, stand_id: parseInt(sid) }]);
 
-  if (insertError) {
-    console.error(insertError);
-    document.getElementById("status").innerText = "❌ Fehler beim Speichern";
-  } else {
-    document.getElementById("status").innerText = "✅ Besuch erfolgreich gespeichert!";
-  }
+  if(insertError){ console.error(insertError); document.getElementById("status").innerText="❌ Fehler beim Speichern"; }
+  else{ document.getElementById("status").innerText="✅ Besuch erfolgreich gespeichert!"; }
 }
 
 saveStand();
