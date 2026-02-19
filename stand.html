@@ -12,10 +12,16 @@
 <script src="data.js"></script>
 
 <script>
-  // 🔹 Supabase einrichten
-  const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I";
-  const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5fsmMl_DMOtze9ztqn9PGlsg0I";
+const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Teilnehmer-ID erzeugen oder laden
+if (!localStorage.getItem("participantId")) {
+  const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  localStorage.setItem("participantId", id);
+}
+const participantId = localStorage.getItem("participantId");
 </script>
 
 <style>
@@ -113,14 +119,7 @@ if (!sid) {
   throw new Error("Keine Stand-ID");
 }
 
-// 2️⃣ Teilnehmer-ID erzeugen
-if (!localStorage.getItem("participantId")) {
-  const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-  localStorage.setItem("participantId", id);
-}
-const participantId = localStorage.getItem("participantId");
-
-// 3️⃣ Standdaten anzeigen
+// 2️⃣ Standdaten anzeigen
 const standData = stands[sid];
 if (!standData) {
   alert("Unbekannter Stand");
@@ -131,36 +130,31 @@ document.getElementById("company").innerText = standData.name;
 document.getElementById("area").innerText = standData.area;
 document.getElementById("standNum").innerText = sid;
 
-// 4️⃣ Lokal speichern
+// 3️⃣ Lokal für Fortschritt speichern (optional)
 let visits = JSON.parse(localStorage.getItem("visits")) || [];
-let alreadyVisited = visits.includes(sid);
-
-if (!alreadyVisited) {
+if (!visits.includes(sid)) {
   visits.push(sid);
   localStorage.setItem("visits", JSON.stringify(visits));
 }
 
-// 5️⃣ Supabase speichern (nur wenn neu)
+// 4️⃣ Supabase speichern – immer versuchen
 async function saveStand() {
-  if (alreadyVisited) {
-    document.getElementById("status").innerText =
-      "ℹ Dieser Stand wurde bereits gezählt.";
-    return;
-  }
+  console.log("Participant ID:", participantId);
+  console.log("Stand ID:", sid);
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('visits')
     .insert([
       { participant_id: participantId, stand_id: parseInt(sid) }
-    ]);
+    ])
+    .select(); // Rückgabe der eingefügten Daten
 
   if (error) {
-    document.getElementById("status").innerText =
-      "❌ Fehler beim Speichern";
-    console.error(error);
+    console.error("Supabase Fehler:", error);
+    document.getElementById("status").innerText = "❌ Fehler beim Speichern!";
   } else {
-    document.getElementById("status").innerText =
-      "✅ Besuch erfolgreich gespeichert!";
+    document.getElementById("status").innerText = "✅ Besuch erfolgreich gespeichert!";
+    console.log("Gespeichert:", data);
   }
 }
 
