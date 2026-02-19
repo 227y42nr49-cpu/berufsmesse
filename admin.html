@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin – Gewinnspiel</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
 
 <style>
@@ -31,7 +30,7 @@ th{background:rgba(255,255,255,0.2);}
 </div>
 
 <div id="adminContent" style="display:none;">
-<p><strong>Teilnehmer mit ≥ 10 besuchten Ständen sind gewinnberechtigt.</strong></p>
+<p><strong>Teilnehmer mit ≥ 10 Ständen sind berechtigt</strong></p>
 <button onclick="drawWinners()">Gewinner ziehen</button>
 <p id="winnerList"></p>
 <button onclick="exportCSV()">Liste herunterladen</button>
@@ -47,31 +46,24 @@ th{background:rgba(255,255,255,0.2);}
 </div>
 
 <script>
-// Supabase Client
 const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
 const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Passwortschutz
-function checkPassword() {
+function checkPassword(){
   const pw = document.getElementById("adminPassword").value;
-  if(pw === "Messe2026gho!") {
+  if(pw==="Messe2026gho!"){
     document.getElementById("loginDiv").style.display="none";
     document.getElementById("adminContent").style.display="block";
     loadParticipants();
-  } else {
-    document.getElementById("loginStatus").innerText="❌ Falsches Passwort!";
-  }
+  } else { document.getElementById("loginStatus").innerText="❌ Falsches Passwort!"; }
 }
 
-// Teilnehmer laden
-async function loadParticipants() {
+async function loadParticipants(){
   const { data, error } = await supabase.from('visits').select('participant_id');
   if(error){ console.error(error); return; }
-
-  const counts = {};
-  data.forEach(v => counts[v.participant_id] = (counts[v.participant_id]||0)+1);
-
+  const counts={};
+  data.forEach(v=>counts[v.participant_id]=(counts[v.participant_id]||0)+1);
   const tbody = document.getElementById("participantTable");
   tbody.innerHTML="";
   for(const [id,count] of Object.entries(counts)){
@@ -82,12 +74,9 @@ async function loadParticipants() {
   window.participantCounts = counts;
 }
 
-// Gewinner ziehen
-function drawWinners() {
-  const minVisits=10; const numberOfWinners=3;
-  const eligible=Object.entries(window.participantCounts)
-    .filter(([id,count])=>count>=minVisits)
-    .map(([id])=>id);
+function drawWinners(){
+  const minVisits=10, numberOfWinners=3;
+  const eligible=Object.entries(window.participantCounts).filter(([id,count])=>count>=minVisits).map(([id])=>id);
   if(eligible.length===0){ document.getElementById("winnerList").innerText="Keine berechtigten Teilnehmer!"; return;}
   const winners=[];
   const pool=[...eligible];
@@ -99,17 +88,14 @@ function drawWinners() {
   document.getElementById("winnerList").innerHTML="🎉 Gewinner: <strong>"+winners.join("</strong>, <strong>")+"</strong>";
 }
 
-// CSV Export
-function exportCSV() {
-  const counts = window.participantCounts; if(!counts) return;
+function exportCSV(){
+  const counts=window.participantCounts; if(!counts) return;
   let csv="Teilnehmer-ID,Anzahl Besuche\n";
   for(const [id,count] of Object.entries(counts)) csv+=`${id},${count}\n`;
-  const blob = new Blob([csv],{type:"text/csv"});
-  const url = URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url; a.download="teilnehmer_liste.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="teilnehmer_liste.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 </script>
-
 </body>
 </html>
