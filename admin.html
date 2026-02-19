@@ -4,118 +4,98 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Gewinnspiel</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
 <script src="data.js"></script>
-
 <style>
-body {
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background:#1e3c72;
-  color:white;
-  margin:0;
-  padding:30px 20px;
-  text-align:center;
-}
-.container {
-  max-width:600px;
-  margin:auto;
-  background: rgba(255,255,255,0.05);
-  padding:30px;
-  border-radius:15px;
-}
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#1e3c72; color:white; margin:0; padding:30px; text-align:center;}
+.container { max-width:600px; margin:auto; background: rgba(255,255,255,0.05); padding:30px; border-radius:15px;}
 h1 { font-size:28px; margin-bottom:20px; }
-input[type="password"] { padding:10px; width:60%; border-radius:10px; border:none; margin-bottom:10px; }
-button { padding:10px 20px; border-radius:10px; border:none; background:#00ff99; color:#1e3c72; font-weight:bold; cursor:pointer; }
-button:hover { background:#00cc77; }
-ul { text-align:left; margin-top:20px; }
-li { margin-bottom:5px; }
+input[type="password"], input[type="number"] { padding:10px; width:60%; border-radius:10px; border:none; margin-bottom:10px;}
+button { padding:10px 20px; border-radius:10px; border:none; background:#00ff99; color:#1e3c72; font-weight:bold; cursor:pointer; margin:5px;}
+ul { text-align:left; margin-top:20px;}
+li { margin-bottom:5px;}
 </style>
 </head>
 <body>
-
 <div class="container">
 <h1>Admin Gewinnspiel</h1>
 
 <div id="loginDiv">
-  <p>Passwort eingeben:</p>
-  <input type="password" id="adminPassword" placeholder="Passwort">
-  <br>
-  <button onclick="checkPassword()">Login</button>
+<p>Passwort eingeben:</p>
+<input type="password" id="adminPassword" placeholder="Passwort">
+<br>
+<button onclick="checkPassword()">Login</button>
 </div>
 
 <div id="adminContent" style="display:none;">
-  <h2>Teilnehmer & Besuche</h2>
-  <ul id="participantList"></ul>
+<h2>Teilnehmer & Besuche</h2>
+<ul id="participantList"></ul>
 
-  <h2>Gewinner ziehen</h2>
-  <input type="number" id="minStands" value="10" style="width:60px;"> Stände mindestens besucht
-  <br>
-  <input type="number" id="numWinners" value="1" style="width:60px;"> Gewinner
-  <br><br>
-  <button onclick="drawWinners()">Ziehung starten</button>
-  <ul id="winnerList"></ul>
+<h2>Gewinner ziehen</h2>
+<input type="number" id="minStands" value="10" style="width:60px;"> Stände mindestens besucht
+<br>
+<input type="number" id="numWinners" value="1" style="width:60px;"> Gewinner
+<br><br>
+<button onclick="drawWinners()">Ziehung starten</button>
+<ul id="winnerList"></ul>
 </div>
 
 <script>
 const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
-const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = Supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const PASSWORD = "Messe2026gho!";
-
 let visits = [];
 
-async function loadVisits() {
+async function loadVisits(){
   const { data, error } = await supabase.from('visits').select('*');
   if(error){ console.error(error); return; }
   visits = data;
 
   const participants = {};
   data.forEach(v=>{
-    if(!participants[v.participant_id]) participants[v.participant_id] = [];
+    if(!participants[v.participant_id]) participants[v.participant_id]=[];
     participants[v.participant_id].push(v.stand_id);
   });
 
   const listEl = document.getElementById("participantList");
-  listEl.innerHTML = "";
+  listEl.innerHTML="";
   for(const pid in participants){
-    const li = document.createElement("li");
-    li.textContent = `${pid} → ${participants[pid].length} Stände: ${participants[pid].map(sid=>stands[sid]?.name||sid).join(", ")}`;
+    const li=document.createElement("li");
+    li.textContent=`${pid} → ${participants[pid].length} Stände: ${participants[pid].map(sid=>stands[sid]?.name||sid).join(", ")}`;
     listEl.appendChild(li);
   }
 }
 
 function checkPassword(){
-  const val = document.getElementById("adminPassword").value;
-  if(val === PASSWORD){
+  const val=document.getElementById("adminPassword").value;
+  if(val===PASSWORD){
     document.getElementById("loginDiv").style.display="none";
     document.getElementById("adminContent").style.display="block";
     loadVisits();
-  } else {
+  }else{
     alert("Falsches Passwort!");
   }
 }
 
 function drawWinners(){
-  const minStands = parseInt(document.getElementById("minStands").value);
-  const numWinners = parseInt(document.getElementById("numWinners").value);
+  const minStands=parseInt(document.getElementById("minStands").value);
+  const numWinners=parseInt(document.getElementById("numWinners").value);
 
-  // Teilnehmer filtern
   const participants = {};
   visits.forEach(v=>{
-    if(!participants[v.participant_id]) participants[v.participant_id] = [];
+    if(!participants[v.participant_id]) participants[v.participant_id]=[];
     participants[v.participant_id].push(v.stand_id);
   });
 
-  const eligible = Object.keys(participants).filter(pid=>participants[pid].length >= minStands);
+  const eligible = Object.keys(participants).filter(pid=>participants[pid].length>=minStands);
   if(eligible.length===0){ alert("Keine Teilnehmer mit genügend besuchten Ständen!"); return; }
 
-  // Gewinner zufällig ziehen
   const winners = [];
-  const copy = [...eligible];
+  const copy=[...eligible];
   for(let i=0;i<numWinners;i++){
     if(copy.length===0) break;
-    const idx = Math.floor(Math.random()*copy.length);
+    const idx=Math.floor(Math.random()*copy.length);
     winners.push(copy[idx]);
     copy.splice(idx,1);
   }
@@ -123,12 +103,11 @@ function drawWinners(){
   const winnerEl = document.getElementById("winnerList");
   winnerEl.innerHTML="";
   winners.forEach(w=>{
-    const li = document.createElement("li");
-    li.textContent = `${w} → ${participants[w].length} Stände`;
+    const li=document.createElement("li");
+    li.textContent=`${w} → ${participants[w].length} Stände`;
     winnerEl.appendChild(li);
   });
 }
 </script>
-
 </body>
 </html>
