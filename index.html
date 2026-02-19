@@ -2,62 +2,113 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Berufsmesse Fortschritt</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
-<script src="data.js"></script>
-<script>
-  const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I";
-  const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Berufsmesse Gewinnspiel</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  color: white;
+  text-align: center;
+}
+
+.container {
+  padding: 30px 20px;
+}
+
+.card {
+  background: white;
+  color: #333;
+  border-radius: 20px;
+  padding: 30px;
+  margin-top: 30px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+h1 {
+  font-size: 26px;
+  margin-top: 40px;
+}
+
+.progress-circle {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  margin: 20px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  font-weight: bold;
+  color: #2a5298;
+  box-shadow: inset 0 0 15px rgba(0,0,0,0.1);
+}
+
+.button {
+  display: inline-block;
+  padding: 14px 24px;
+  margin-top: 20px;
+  border-radius: 30px;
+  background: #2a5298;
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.button:hover {
+  background: #1e3c72;
+}
+
+.small {
+  font-size: 13px;
+  color: #666;
+  margin-top: 15px;
+}
+</style>
 </head>
+
 <body>
-<h1>🎓 Berufsmesse 2026</h1>
 
-<p>
-Teilnehmer-ID: <strong id="participantId"></strong><br>
-Besuchte Stände: <strong id="count">0</strong>
-</p>
+<div class="container">
 
-<button onclick="downloadCSV()">⬇️ CSV herunterladen</button>
+<h1>🎉 Berufsmesse Gewinnspiel</h1>
+
+<div class="card">
+
+  <h2>Dein Fortschritt</h2>
+
+  <div class="progress-circle">
+    <span id="counter">0</span>
+  </div>
+
+  <p>besuchte Stände</p>
+
+  <div class="small">
+    Je mehr Stände du besuchst,<br>
+    desto höher deine Gewinnchance!
+  </div>
+
+</div>
+
+</div>
 
 <script>
-if(!localStorage.getItem("participantId")){
-    const id = "T-" + Math.random().toString(36).substring(2,8).toUpperCase();
-    localStorage.setItem("participantId", id);
+
+// Teilnehmer-ID erzeugen (falls nicht vorhanden)
+if (!localStorage.getItem("participantId")) {
+  const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  localStorage.setItem("participantId", id);
 }
 
-document.getElementById("participantId").innerText = localStorage.getItem("participantId");
+// Besuche laden
+const visits = JSON.parse(localStorage.getItem("visits")) || [];
+document.getElementById("counter").innerText = visits.length;
 
-async function loadProgress(){
-    const participantId = localStorage.getItem("participantId");
-    const { data, error } = await supabase
-        .from('visits')
-        .select('stand_id')
-        .eq('participant_id', participantId);
-    if(data) document.getElementById("count").innerText = data.length;
-}
-
-loadProgress();
-
-function downloadCSV(){
-    const participantId = localStorage.getItem("participantId");
-    supabase
-        .from('visits')
-        .select('stand_id')
-        .eq('participant_id', participantId)
-        .then(({ data, error }) => {
-            let csv = "participant_id,stand_id\n";
-            data.forEach(row => { csv += participantId + "," + row.stand_id + "\n"; });
-            const blob = new Blob([csv], {type: 'text/csv'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `berufsmesse_${participantId}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-        });
-}
 </script>
+
 </body>
 </html>
