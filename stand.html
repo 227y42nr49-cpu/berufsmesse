@@ -30,40 +30,50 @@ h1 { font-size:28px; margin-bottom:20px; }
 <script>
 document.addEventListener("DOMContentLoaded", async function(){
 
-const params = new URLSearchParams(window.location.search);
-const sid = params.get("sid");
-if(!sid){ alert("Ungültiger QR-Code"); return; }
+  const params = new URLSearchParams(window.location.search);
+  const sid = params.get("sid");
+  if(!sid){ alert("Ungültiger QR-Code"); return; }
 
-const standData = stands[sid];
-if(!standData){ alert("Stand unbekannt"); return; }
+  const standData = stands[sid];
+  if(!standData){ alert("Stand unbekannt"); return; }
 
-document.getElementById("company").innerText = standData.name;
-document.getElementById("area").innerText = standData.area;
-document.getElementById("standNum").innerText = sid;
+  document.getElementById("company").innerText = standData.name;
+  document.getElementById("area").innerText = standData.area;
+  document.getElementById("standNum").innerText = sid;
 
-// Teilnehmer-ID
-let participantId = localStorage.getItem("participantId");
-if(!participantId){
-  participantId = "T-"+Math.random().toString(36).substring(2,8).toUpperCase();
-  localStorage.setItem("participantId", participantId);
-}
+  // Teilnehmer-ID
+  let participantId = localStorage.getItem("participantId");
+  if(!participantId){
+    participantId = "T-"+Math.random().toString(36).substring(2,8).toUpperCase();
+    localStorage.setItem("participantId", participantId);
+  }
 
-// Supabase
-const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
-const supabase = Supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  // Supabase
+  const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
+  const supabase = Supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// Prüfen, ob Stand schon besucht
-const { data: existing } = await supabase.from('visits').select('*')
-  .eq('participant_id', participantId)
-  .eq('stand_id', parseInt(sid));
+  // Prüfen, ob Stand schon besucht
+  const { data: existing, error: checkError } = await supabase.from('visits').select('*')
+    .eq('participant_id', participantId)
+    .eq('stand_id', parseInt(sid));
 
-if(existing.length>0){
-  document.getElementById("status").innerText = "ℹ Stand wurde bereits gezählt.";
-} else {
-  const { error } = await supabase.from('visits').insert([{ participant_id: participantId, stand_id: parseInt(sid) }]);
-  document.getElementById("status").innerText = error ? "❌ Fehler beim Speichern" : "✅ Besuch gespeichert!";
-}
+  if(checkError) console.error("Fehler beim Prüfen:", checkError);
+
+  if(existing.length>0){
+    document.getElementById("status").innerText = "ℹ Stand wurde bereits gezählt.";
+  } else {
+    const { data, error } = await supabase.from('visits').insert([
+      { participant_id: participantId, stand_id: parseInt(sid) }
+    ]);
+    if(error){
+      console.error("Fehler beim Insert:", error);
+      document.getElementById("status").innerText = "❌ Fehler beim Speichern";
+    } else {
+      console.log("Insert erfolgreich:", data);
+      document.getElementById("status").innerText = "✅ Besuch gespeichert!";
+    }
+  }
 });
 </script>
 </body>
