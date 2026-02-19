@@ -5,25 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Berufsmesse Fortschritt</title>
 
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
-
-<!-- Stand-Daten -->
 <script src="data.js"></script>
-
-<script>
-  // 🔹 Supabase einrichten
-  const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I";
-  const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  // 🔹 Teilnehmer-ID erzeugen oder laden
-  if (!localStorage.getItem("participantId")) {
-    const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-    localStorage.setItem("participantId", id);
-  }
-  const participantId = localStorage.getItem("participantId");
-</script>
 
 <style>
 body {
@@ -35,154 +17,85 @@ body {
 }
 
 .container {
-  padding: 20px;
+  padding: 30px 20px;
 }
 
 h1 {
-  margin-top: 20px;
-  font-size: 26px;
+  font-size: 28px;
+  margin-top: 40px;
 }
 
-.id-box {
-  background: #fff;
-  color: #333;
-  padding: 15px 20px;
-  border-radius: 12px;
-  margin: 20px auto;
-  width: fit-content;
+#participantId {
+  font-size: 20px;
+  margin-top: 10px;
   font-weight: bold;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  background: rgba(255,255,255,0.2);
+  padding: 10px 20px;
+  border-radius: 15px;
+  display: inline-block;
 }
 
-.progress-card {
+.list {
+  margin-top: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.card {
   background: white;
   color: #333;
-  border-radius: 20px;
+  border-radius: 15px;
   padding: 20px;
-  margin: 15px auto;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+  margin: 10px;
+  width: 160px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  text-align: center;
 }
 
-.progress-bar {
-  background: #eee;
-  border-radius: 20px;
-  overflow: hidden;
-  margin-top: 10px;
-}
-
-.progress-fill {
-  background: #2a5298;
-  height: 20px;
-  width: 0%;
-  border-radius: 20px;
-  transition: width 0.4s ease-in-out;
-}
-
-.visited-list {
-  margin-top: 15px;
-  text-align: left;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.visited-list li {
-  padding: 5px 0;
-  border-bottom: 1px solid #ddd;
-}
-
-.button {
-  display: inline-block;
-  margin-top: 20px;
-  padding: 12px 24px;
-  border-radius: 30px;
+.visited {
   background: #2a5298;
   color: white;
-  text-decoration: none;
-  font-weight: bold;
-  transition: 0.3s;
-}
-
-.button:hover {
-  background: #1e3c72;
 }
 </style>
-
 </head>
 <body>
 
 <div class="container">
+<h1>📍 Dein Messe-Fortschritt</h1>
 
-<h1>🚀 Dein Messe-Fortschritt</h1>
+<div id="participantId"></div> <!-- ID sichtbar -->
 
-<!-- Teilnehmer-ID -->
-<div class="id-box">
-  Deine Teilnehmer-ID: <strong id="participantId"></strong>
-  <br>
-  <button onclick="navigator.clipboard.writeText(participantId)">📋 ID kopieren</button>
-</div>
-
-<!-- Fortschritt -->
-<div class="progress-card">
-  <div>Besuchte Stände: <span id="visitedCount">0</span> / <span id="totalStands">0</span></div>
-  <div class="progress-bar">
-    <div class="progress-fill" id="progressFill"></div>
-  </div>
-
-  <!-- Liste der besuchten Stände -->
-  <ul class="visited-list" id="visitedList"></ul>
-</div>
-
+<div class="list" id="standList"></div>
 </div>
 
 <script>
-// 1️⃣ Teilnehmer-ID auf Seite anzeigen
-document.getElementById("participantId").innerText = participantId;
-
-// 2️⃣ Anzahl der Stände
-const totalStands = Object.keys(stands).length;
-document.getElementById("totalStands").innerText = totalStands;
-
-// 3️⃣ Fortschritt aus Supabase laden
-async function loadProgress() {
-  // Abfrage der besuchten Stände für diesen Teilnehmer
-  const { data, error } = await supabase
-    .from('visits')
-    .select('stand_id')
-    .eq('participant_id', participantId);
-
-  if(error){
-    console.error("Fehler beim Laden:", error);
-    return;
-  }
-
-  const visits = data.map(v => v.stand_id.toString());
-  updateProgress(visits);
+// Teilnehmer-ID laden oder erstellen
+if (!localStorage.getItem("participantId")) {
+  const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  localStorage.setItem("participantId", id);
 }
+const participantId = localStorage.getItem("participantId");
 
-// 4️⃣ Fortschritt aktualisieren
-function updateProgress(visits) {
-  // Anzahl
-  const count = visits.length;
-  document.getElementById("visitedCount").innerText = count;
+// ID sichtbar machen
+document.getElementById("participantId").innerText = "Deine ID: " + participantId;
 
-  // Fortschrittsbalken
-  const percent = (count / totalStands) * 100;
-  document.getElementById("progressFill").style.width = percent + "%";
+// Besuche aus localStorage laden
+let visits = JSON.parse(localStorage.getItem("visits")) || [];
+const standListDiv = document.getElementById("standList");
 
-  // Liste der besuchten Stände
-  const listEl = document.getElementById("visitedList");
-  listEl.innerHTML = "";
-  visits.forEach(sid => {
-    const li = document.createElement("li");
-    li.textContent = `Stand ${sid}: ${stands[sid] ? stands[sid].name : "Unbekannt"}`;
-    listEl.appendChild(li);
-  });
+for (const [id, info] of Object.entries(stands)) {
+  const card = document.createElement("div");
+  card.className = "card";
+  if (visits.includes(id)) card.classList.add("visited");
+
+  card.innerHTML = `
+    <strong>${info.name}</strong><br>
+    <small>${info.area}</small><br>
+    Stand-Nr.: ${id}
+  `;
+  standListDiv.appendChild(card);
 }
-
-// 5️⃣ Aufruf beim Laden
-loadProgress();
 </script>
 
 </body>
