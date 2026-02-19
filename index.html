@@ -5,79 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fortschritt Messe</title>
 
-<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
 
 <style>
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg,#1e3c72,#2a5298);
-  color: white;
-  margin: 0;
-  text-align: center;
-  padding: 50px 20px;
-}
-
-.container {
-  background: rgba(255,255,255,0.1);
-  border-radius: 20px;
-  padding: 40px 30px;
-  max-width: 400px;
-  margin: auto;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-  backdrop-filter: blur(10px);
-}
-
-h1 {
-  font-size: 28px;
-  margin-bottom: 30px;
-}
-
-p {
-  font-size: 20px;
-  margin: 15px 0;
-}
-
-strong {
-  font-size: 24px;
-  color: #ffd700;
-}
-
-#visitedCount {
-  font-size: 48px;
-  font-weight: bold;
-  color: #00ff99;
-  transition: transform 0.3s, color 0.3s;
-}
-
-/* Pulse Animation */
-.pulse {
-  animation: pulseAnim 0.4s ease-in-out;
-}
-
-@keyframes pulseAnim {
-  0% { transform: scale(1); color: #00ff99; }
-  50% { transform: scale(1.3); color: #00ff44; }
-  100% { transform: scale(1); color: #00ff99; }
-}
-
-/* Fortschrittsleiste */
-.progress-bar {
-  position: relative;
-  width: 100%;
-  height: 25px;
-  background: rgba(255,255,255,0.3);
-  border-radius: 15px;
-  margin-top: 20px;
-}
-
-.progress-fill {
-  height: 100%;
-  width: 0%;
-  background: #00ff99;
-  border-radius: 15px;
-  transition: width 0.5s ease;
-}
+body { font-family: -apple-system, BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background: linear-gradient(135deg,#1e3c72,#2a5298); color:white; margin:0; text-align:center; padding:50px 20px;}
+.container { background: rgba(255,255,255,0.1); border-radius:20px; padding:40px 30px; max-width:400px; margin:auto; box-shadow:0 10px 25px rgba(0,0,0,0.3); backdrop-filter: blur(10px);}
+h1{font-size:28px;margin-bottom:30px;}
+#visitedCount{font-size:48px;font-weight:bold;color:#00ff99;transition: transform 0.3s, color 0.3s;}
+.pulse{animation:pulseAnim 0.4s ease-in-out;}
+@keyframes pulseAnim{0%{transform:scale(1);color:#00ff99;}50%{transform:scale(1.3);color:#00ff44;}100%{transform:scale(1);color:#00ff99;}}
+.progress-bar{position:relative;width:100%;height:25px;background:rgba(255,255,255,0.3);border-radius:15px;margin-top:20px;}
+.progress-fill{height:100%;width:0%;background:#00ff99;border-radius:15px;transition:width 0.5s ease;}
 </style>
 </head>
 <body>
@@ -86,60 +25,47 @@ strong {
   <h1>🎯 Dein Fortschritt</h1>
   <p>Besuchte Stände:</p>
   <p><span id="visitedCount">0</span> / 71</p>
-
-  <div class="progress-bar">
-    <div class="progress-fill" id="progressFill"></div>
-  </div>
-
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
   <p>Deine Teilnehmer-ID: <strong id="participantId"></strong></p>
 </div>
 
 <script>
-// --- Supabase Client ---
+// Supabase
 const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
 const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- Teilnehmer-ID erzeugen oder abrufen ---
+// Teilnehmer-ID erzeugen oder abrufen
 if (!localStorage.getItem("participantId")) {
-  const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  const id = "T-" + Math.random().toString(36).substring(2,8).toUpperCase();
   localStorage.setItem("participantId", id);
 }
 const participantId = localStorage.getItem("participantId");
 document.getElementById("participantId").innerText = participantId;
 
-// --- Fortschritt aus Supabase laden ---
 let lastCount = 0;
 
 async function updateProgress() {
   const { data, error } = await supabase
-    .from('visits')
-    .select('*')
-    .eq('participant_id', participantId);
+    .from('visits').select('*').eq('participant_id', participantId);
 
-  if (error) {
-    console.error(error);
-    return;
-  }
+  if(error){ console.error(error); return; }
 
   const visitedCount = data.length;
   const visitedCountEl = document.getElementById("visitedCount");
 
-  // Animation bei neuen Besuchen
-  if (visitedCount > lastCount) {
+  if(visitedCount > lastCount){
     visitedCountEl.classList.add("pulse");
-    setTimeout(() => visitedCountEl.classList.remove("pulse"), 400);
+    setTimeout(()=>visitedCountEl.classList.remove("pulse"),400);
   }
 
   visitedCountEl.innerText = visitedCount;
   lastCount = visitedCount;
 
-  // Fortschrittsleiste
-  const percent = Math.min(100, (visitedCount / 71) * 100);
+  const percent = Math.min(100, (visitedCount/71)*100);
   document.getElementById("progressFill").style.width = percent + "%";
 }
 
-// --- Alle 1 Sekunde aktualisieren ---
 setInterval(updateProgress, 1000);
 updateProgress();
 </script>
