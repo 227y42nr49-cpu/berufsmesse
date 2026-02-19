@@ -26,10 +26,12 @@ body {
   background:white; color:#333; border-radius:20px; padding:30px; margin-top:30px;
   box-shadow:0 10px 25px rgba(0,0,0,0.25);
   animation:fadeIn 0.6s ease-in-out;
-  max-width:600px; margin-left:auto; margin-right:auto;
+  max-width:700px; margin-left:auto; margin-right:auto;
 }
 h1 { font-size:24px; margin-top:0; }
-input[type="password"] { padding:10px; width:60%; border-radius:10px; border:none; margin-top:15px; }
+input[type="password"], input[type="number"] {
+  padding:10px; width:60%; border-radius:10px; border:none; margin-top:10px;
+}
 .button {
   display:inline-block; margin-top:15px; padding:12px 20px; border-radius:30px;
   background:#2a5298; color:white; text-decoration:none; font-weight:bold; transition:0.3s; cursor:pointer;
@@ -37,6 +39,7 @@ input[type="password"] { padding:10px; width:60%; border-radius:10px; border:non
 .button:hover { background:#1e3c72; }
 table { width:100%; border-collapse:collapse; margin-top:20px; }
 th,td { padding:10px; border:1px solid #ccc; color:#333; text-align:left; }
+#winnerOutput { margin-top:15px; font-weight:bold; color:green; }
 @keyframes fadeIn { from {opacity:0; transform: translateY(10px);} to {opacity:1; transform:translateY(0);} }
 </style>
 </head>
@@ -55,16 +58,17 @@ th,td { padding:10px; border:1px solid #ccc; color:#333; text-align:left; }
 <div class="card" id="adminContent" style="display:none;">
   <h2>Teilnehmer & Besuche</h2>
   <div id="participants"></div>
+
   <div style="margin-top:20px;">
     <input type="number" id="minStands" value="10" style="width:60px;"/>
     <span>Minimale Stände für Gewinner</span>
     <div class="button" id="drawWinnerBtn">🎉 Gewinner ziehen</div>
-    <div id="winnerOutput" style="margin-top:15px; font-weight:bold; color:green;"></div>
+    <div id="winnerOutput"></div>
   </div>
 </div>
 
 <script>
-// 1️⃣ Passwortschutz
+// 🔐 Passwortschutz
 document.getElementById("loginBtn").addEventListener("click",()=>{
   const pw = document.getElementById("adminPassword").value;
   if(pw==="Messe2026gho!"){
@@ -76,7 +80,7 @@ document.getElementById("loginBtn").addEventListener("click",()=>{
   }
 });
 
-// 2️⃣ Teilnehmer laden
+// 📊 Teilnehmer laden
 async function loadParticipants(){
   const { data, error } = await supabase
     .from('visits')
@@ -88,9 +92,10 @@ async function loadParticipants(){
   const participants = {};
   data.forEach(row=>{
     if(!participants[row.participant_id]) participants[row.participant_id]=[];
-    participants[row.participant_id].push(row.stand_id);
+    participants[row.participant_id].push(Number(row.stand_id));
   });
 
+  // Tabelle anzeigen
   const container = document.getElementById("participants");
   container.innerHTML = "<table><tr><th>Teilnehmer-ID</th><th>Besuchte Stände (#)</th></tr>"+
     Object.keys(participants).map(pid=>`<tr><td>${pid}</td><td>${participants[pid].join(", ")}</td></tr>`).join("")+
@@ -99,23 +104,25 @@ async function loadParticipants(){
   window.participantsData = participants; // global für Gewinnerziehen
 }
 
-// 3️⃣ Gewinner ziehen
+// 🎯 Gewinner ziehen
 document.getElementById("drawWinnerBtn").addEventListener("click",()=>{
   const minStands = parseInt(document.getElementById("minStands").value) || 10;
-  const eligible = Object.entries(window.participantsData || {})
-    .filter(([pid, stands])=>stands.length>=minStands)
-    .map(([pid])=>pid);
+  const participants = window.participantsData || {};
+
+  // Nur Teilnehmer, die genug Stände besucht haben
+  const eligible = Object.entries(participants)
+    .filter(([pid, stands]) => stands.length >= minStands)
+    .map(([pid]) => pid);
 
   if(eligible.length===0){
     document.getElementById("winnerOutput").innerText="❌ Keine Teilnehmer erfüllen die Mindestanforderung";
     return;
   }
 
-  // Zufällig Gewinner auswählen (1 Gewinner)
+  // Zufällig Gewinner auswählen
   const winner = eligible[Math.floor(Math.random()*eligible.length)];
   document.getElementById("winnerOutput").innerText=`🏆 Gewinner: ${winner}`;
 });
 </script>
-
 </body>
 </html>
