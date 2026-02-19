@@ -81,6 +81,7 @@ th {
     <p><strong>Teilnehmer mit ≥ 10 besuchten Ständen werden als gewinnberechtigt betrachtet.</strong></p>
     <button onclick="drawWinners()">Gewinner ziehen</button>
     <p id="winnerList"></p>
+    <button onclick="exportCSV()">Liste herunterladen</button>
 
     <h2>Teilnehmerliste</h2>
     <table>
@@ -163,6 +164,27 @@ function drawWinners() {
 
   document.getElementById("winnerList").innerHTML = 
     "🎉 Gewinner: <strong>" + winners.join("</strong>, <strong>") + "</strong>";
+}
+
+// --- Export CSV ---
+function exportCSV() {
+  const counts = window.participantCounts;
+  if(!counts) return;
+
+  let csv = "Teilnehmer-ID,Anzahl Besuche\n";
+  for(const [id, count] of Object.entries(counts)){
+    csv += `${id},${count}\n`;
+  }
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "teilnehmer_liste.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 </script>
 
