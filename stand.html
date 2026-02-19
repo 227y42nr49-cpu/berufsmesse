@@ -5,10 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stand-Check</title>
 
-<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
-
-<!-- Stand-Daten -->
 <script src="data.js"></script>
 
 <script>
@@ -16,7 +13,7 @@ const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5fsmMl_DMOtze9ztqn9PGlsg0I";
 const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Teilnehmer-ID erzeugen oder laden
+// Teilnehmer-ID laden oder erzeugen
 if (!localStorage.getItem("participantId")) {
   const id = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
   localStorage.setItem("participantId", id);
@@ -44,7 +41,6 @@ body {
   padding: 30px;
   margin-top: 40px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-  animation: fadeIn 0.6s ease-in-out;
 }
 
 h1 {
@@ -62,6 +58,13 @@ h1 {
   font-size: 16px;
   color: #666;
   margin-bottom: 20px;
+}
+
+#participantId {
+  font-weight: bold;
+  margin-bottom: 15px;
+  display: block;
+  color: #333;
 }
 
 .success {
@@ -85,13 +88,7 @@ h1 {
 .button:hover {
   background: #1e3c72;
 }
-
-@keyframes fadeIn {
-  from {opacity: 0; transform: translateY(10px);}
-  to {opacity: 1; transform: translateY(0);}
-}
 </style>
-
 </head>
 <body>
 
@@ -100,6 +97,7 @@ h1 {
 <h1>🎯 Stand erfolgreich gescannt</h1>
 
 <div class="card">
+  <span id="participantId"></span> <!-- ID sichtbar -->
   <div class="company" id="company"></div>
   <div class="area" id="area"></div>
   <div>Stand-Nr.: <strong id="standNum"></strong></div>
@@ -111,43 +109,35 @@ h1 {
 </div>
 
 <script>
-// 1️⃣ Stand-ID aus URL
+// Stand-ID aus URL
 const params = new URLSearchParams(window.location.search);
 const sid = params.get("sid");
-if (!sid) {
-  alert("Ungültiger QR-Code");
-  throw new Error("Keine Stand-ID");
-}
+if (!sid) { alert("Ungültiger QR-Code"); throw new Error("Keine Stand-ID"); }
 
-// 2️⃣ Standdaten anzeigen
+// Standdaten anzeigen
 const standData = stands[sid];
-if (!standData) {
-  alert("Unbekannter Stand");
-  throw new Error("Stand nicht gefunden");
-}
+if (!standData) { alert("Unbekannter Stand"); throw new Error("Stand nicht gefunden"); }
 
 document.getElementById("company").innerText = standData.name;
 document.getElementById("area").innerText = standData.area;
 document.getElementById("standNum").innerText = sid;
+document.getElementById("participantId").innerText = "Deine ID: " + participantId;
 
-// 3️⃣ Lokal für Fortschritt speichern (optional)
+// Lokal speichern
 let visits = JSON.parse(localStorage.getItem("visits")) || [];
 if (!visits.includes(sid)) {
   visits.push(sid);
   localStorage.setItem("visits", JSON.stringify(visits));
 }
 
-// 4️⃣ Supabase speichern – immer versuchen
+// Supabase speichern
 async function saveStand() {
-  console.log("Participant ID:", participantId);
-  console.log("Stand ID:", sid);
+  console.log("Participant ID:", participantId, "Stand ID:", sid);
 
   const { data, error } = await supabase
     .from('visits')
-    .insert([
-      { participant_id: participantId, stand_id: parseInt(sid) }
-    ])
-    .select(); // Rückgabe der eingefügten Daten
+    .insert([{ participant_id: participantId, stand_id: parseInt(sid) }])
+    .select();
 
   if (error) {
     console.error("Supabase Fehler:", error);
