@@ -56,16 +56,37 @@ tr.visited {
 .button:hover {
   background: #1e3c72;
 }
+
+#winner p {
+  font-size: 18px;
+  font-weight: bold;
+  color: green;
+}
 </style>
 </head>
 <body>
 
 <h1>Admin: Messe-Gewinnspiel</h1>
 
+<!-- Passwortschutz -->
+<script>
+const password = "DeinAdminPasswort"; // <-- hier ändern
+let entered = prompt("Bitte Admin-Passwort eingeben:");
+if (entered !== password) {
+  alert("Falsches Passwort! Zugriff verweigert.");
+  document.body.innerHTML = "<h2>Zugriff verweigert!</h2>";
+  throw new Error("Falsches Passwort");
+}
+</script>
+
+<!-- Buttons -->
 <button class="button" onclick="loadData()">Daten laden</button>
+<label for="maxWinners">Max. Gewinner:</label>
+<input type="number" id="maxWinnersInput" value="3" min="1" style="width:50px; margin-right:10px;">
 <button class="button" onclick="drawWinner()">Gewinner ziehen</button>
 <button class="button" onclick="exportCSV()">Als CSV exportieren</button>
 
+<!-- Tabelle -->
 <table id="table">
   <thead>
     <tr>
@@ -74,32 +95,29 @@ tr.visited {
       <th>Anzahl</th>
     </tr>
   </thead>
-  <tbody>
-  </tbody>
+  <tbody></tbody>
 </table>
 
-<div id="winner" style="margin-top:20px; font-size:20px; font-weight:bold; color:green;"></div>
+<div id="winner" style="margin-top:20px;"></div>
 
 <script>
-// Supabase Client
+// Supabase
 const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5fsmMl_DMOtze9ztqn9PGlsg0I";
 const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let allData = []; // Zwischenspeicherung
+let allData = [];
+let remainingParticipants = [];
 
 // Daten laden
 async function loadData() {
-  const { data, error } = await supabase
-    .from('visits')
-    .select('*');
-
+  const { data, error } = await supabase.from('visits').select('*');
   if (error) {
     alert("Fehler beim Laden: " + error.message);
     return;
   }
-
   allData = data;
+  remainingParticipants = []; // Reset für neue Ziehungen
   renderTable();
 }
 
@@ -107,14 +125,11 @@ async function loadData() {
 function renderTable() {
   const tbody = document.querySelector("#table tbody");
   tbody.innerHTML = "";
-
-  // Gruppieren nach participant_id
   const grouped = {};
   allData.forEach(row => {
     if (!grouped[row.participant_id]) grouped[row.participant_id] = [];
     grouped[row.participant_id].push(row.stand_id);
   });
-
   for (const [participant, stands] of Object.entries(grouped)) {
     const tr = document.createElement("tr");
     tr.className = stands.length > 0 ? "visited" : "";
@@ -129,13 +144,40 @@ function renderTable() {
 
 // Gewinner ziehen
 function drawWinner() {
-  const groupedIds = [...new Set(allData.map(row => row.participant_id))];
-  if (groupedIds.length === 0) {
-    alert("Keine Teilnehmer vorhanden!");
+  const maxWinners = parseInt(document.getElementById("maxWinnersInput").value);
+
+  // Teilnehmer mit mindestens 10 besuchten Ständen filtern
+  const grouped = {};
+  allData.forEach(row => {
+    if (!grouped[row.participant_id]) grouped[row.participant_id] = [];
+    grouped[row.participant_id].push(row.stand_id);
+  });
+
+  if (remainingParticipants.length === 0) {
+    remainingParticipants = Object.entries(grouped)
+      .filter(([p, stands]) => stands.length >= 10)
+      .map(([p]) => p);
+  }
+
+  if (remainingParticipants.length === 0) {
+    alert("Keine Teilnehmer mit ≥10 besuchten Ständen oder alle Gewinner bereits gezogen!");
     return;
   }
-  const winner = groupedIds[Math.floor(Math.random() * groupedIds.length)];
-  document.getElementById("winner").innerText = "🏆 Gewinner: " + winner;
+
+  if (document.querySelectorAll("#winner p").length >= maxWinners) {
+    alert(`Es können maximal ${maxWinners} Gewinner gezogen werden.`);
+    return;
+  }
+
+  // Zufälligen Gewinner ziehen
+  const randomIndex = Math.floor(Math.random() * remainingParticipants.length);
+  const winner = remainingParticipants.splice(randomIndex, 1)[0];
+
+  // Anzeige
+  const winnerDiv = document.getElementById("winner");
+  const p = document.createElement("p");
+  p.innerText = "🏆 Gewinner: " + winner;
+  winnerDiv.appendChild(p);
 }
 
 // CSV exportieren
@@ -146,15 +188,12 @@ function exportCSV() {
     if (!grouped[row.participant_id]) grouped[row.participant_id] = [];
     grouped[row.participant_id].push(row.stand_id);
   });
-
   for (const [participant, stands] of Object.entries(grouped)) {
     rows.push([participant, stands.join(";"), stands.length]);
   }
-
   let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-  const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
+  link.setAttribute("href", encodeURI(csvContent));
   link.setAttribute("download", "gewinnspiel.csv");
   document.body.appendChild(link);
   link.click();
