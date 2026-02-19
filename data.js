@@ -1,119 +1,73 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Gewinnspiel</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
-<script src="data.js"></script>
-
-<style>
-body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#1e3c72; color:white; margin:0; padding:30px; text-align:center;}
-.container { max-width:700px; margin:auto; background: rgba(255,255,255,0.05); padding:30px; border-radius:15px;}
-h1 { font-size:28px; margin-bottom:20px; }
-input[type="password"], input[type="number"] { padding:10px; width:60%; border-radius:10px; border:none; margin-bottom:10px;}
-button { padding:10px 20px; border-radius:10px; border:none; background:#00ff99; color:#1e3c72; font-weight:bold; cursor:pointer; margin:5px;}
-ul { text-align:left; margin-top:20px;}
-li { margin-bottom:5px;}
-</style>
-</head>
-<body>
-<div class="container">
-<h1>Admin Gewinnspiel</h1>
-
-<!-- Login -->
-<div id="loginDiv">
-<p>Passwort eingeben:</p>
-<input type="password" id="adminPassword" placeholder="Passwort">
-<br>
-<button onclick="checkPassword()">Login</button>
-</div>
-
-<!-- Admin Content -->
-<div id="adminContent" style="display:none;">
-<h2>Teilnehmer & Besuche</h2>
-<ul id="participantList"></ul>
-
-<h2>Gewinner ziehen</h2>
-<input type="number" id="minStands" value="10" style="width:60px;"> Stände mindestens besucht
-<br>
-<input type="number" id="numWinners" value="1" style="width:60px;"> Gewinner
-<br><br>
-<button onclick="drawWinners()">Ziehung starten</button>
-<ul id="winnerList"></ul>
-</div>
-
-<script>
-const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
-const supabase = Supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const PASSWORD = "Messe2026gho!";
-let visits = [];
-
-// Login prüfen
-function checkPassword(){
-  const val=document.getElementById("adminPassword").value;
-  if(val===PASSWORD){
-    document.getElementById("loginDiv").style.display="none";
-    document.getElementById("adminContent").style.display="block";
-    loadVisits();
-  }else{
-    alert("Falsches Passwort!");
-  }
-}
-
-// Teilnehmer laden
-async function loadVisits(){
-  const { data, error } = await supabase.from('visits').select('*');
-  if(error){ console.error("Fehler beim Laden:", error); return; }
-  visits = data;
-
-  const participants = {};
-  data.forEach(v=>{
-    if(!participants[v.participant_id]) participants[v.participant_id]=[];
-    participants[v.participant_id].push(v.stand_id);
-  });
-
-  const listEl = document.getElementById("participantList");
-  listEl.innerHTML="";
-  for(const pid in participants){
-    const li=document.createElement("li");
-    li.textContent=`${pid} → ${participants[pid].length} Stände: ${participants[pid].map(sid=>stands[sid]?.name||sid).join(", ")}`;
-    listEl.appendChild(li);
-  }
-}
-
-// Gewinner ziehen
-function drawWinners(){
-  const minStands=parseInt(document.getElementById("minStands").value);
-  const numWinners=parseInt(document.getElementById("numWinners").value);
-
-  const participants = {};
-  visits.forEach(v=>{
-    if(!participants[v.participant_id]) participants[v.participant_id]=[];
-    participants[v.participant_id].push(v.stand_id);
-  });
-
-  const eligible = Object.keys(participants).filter(pid=>participants[pid].length>=minStands);
-  if(eligible.length===0){ alert("Keine Teilnehmer mit genügend besuchten Ständen!"); return; }
-
-  const winners = [];
-  const copy=[...eligible];
-  for(let i=0;i<numWinners;i++){
-    if(copy.length===0) break;
-    const idx=Math.floor(Math.random()*copy.length);
-    winners.push(copy[idx]);
-    copy.splice(idx,1);
-  }
-
-  const winnerEl = document.getElementById("winnerList");
-  winnerEl.innerHTML="";
-  winners.forEach(w=>{
-    const li=document.createElement("li");
-    li.textContent=`${w} → ${participants[w].length} Stände`;
-    winnerEl.appendChild(li);
-  });
-}
-</script>
-</body>
-</html>
+const stands = {
+  "1": {name: "CLAAS Bordesholm GmbH Standort", area: "Landtechnik & Maschinenbau"},
+  "2": {name: "Europa-Universität Flensburg", area: "Hochschule & Bildung"},
+  "3": {name: "Ramelow", area: "Einzelhandel"},
+  "4": {name: "Schleswig-Holstein Netz", area: "Energieversorgung"},
+  "5": {name: "CM-Automation", area: "Industrieautomation"},
+  "6": {name: "Fachhochschule Westküste", area: "Hochschule & Bildung"},
+  "7": {name: "Steuerberatergesellschaft ttp", area: "Steuerberatung"},
+  "8": {name: "Galabau", area: "Garten- & Landschaftsbau"},
+  "9": {name: "Campus Suderburg", area: "Hochschule & Bildung"},
+  "10": {name: "Stadtwerke Heide", area: "Energie & Versorgung"},
+  "11": {name: "Kreishandwerkerschaft Dithmarschen", area: "Handwerksorganisation"},
+  "12": {name: "Will-Bau", area: "Baugewerbe"},
+  "13": {name: "Hochschule Wismar", area: "Hochschule & Bildung"},
+  "14": {name: "Finanzamt Dithmarschen", area: "Öffentliche Verwaltung"},
+  "15": {name: "DFDS Baltic Seaways", area: "Schifffahrt & Logistik"},
+  "16": {name: "Landesamt für Vermessung und Geoinformation S-H", area: "Öffentliche Verwaltung & Geoinformation"},
+  "17": {name: "Kreis Dithmarschen", area: "Kommunalverwaltung"},
+  "18": {name: "Aldi", area: "Lebensmitteleinzelhandel"},
+  "19": {name: "Deich- und Hauptsielverband Dithmarschen", area: "Wasserwirtschaft"},
+  "20": {name: "Dithmarscher Volks- und Raiffeisenbank", area: "Bankwesen"},
+  "21": {name: "DRK-Akademie", area: "Gesundheitsausbildung"},
+  "22": {name: "Landwirtschaftskammer SH", area: "Landwirtschaft & Beratung"},
+  "23": {name: "Medizinische Schule HH", area: "Gesundheitsausbildung"},
+  "24": {name: "Sasol", area: "Chemische Industrie"},
+  "25": {name: "Schröder Bauzentrum", area: "Baustoffhandel"},
+  "26": {name: "amedes-group", area: "Medizinische Diagnostik"},
+  "27": {name: "Bundespolizei", area: "Sicherheitsbehörde"},
+  "28": {name: "Westhof Bio", area: "Lebensmittelproduktion"},
+  "29": {name: "Christoph Heide", area: "Dienstleistungen"},
+  "30": {name: "Georg C", area: "Dienstleistungen"},
+  "31": {name: "HAW Kiel", area: "Hochschule & Bildung"},
+  "32": {name: "Yara", area: "Chemische Industrie"},
+  "33": {name: "Bundeswehr", area: "Verteidigung"},
+  "34": {name: "Zahnärztekammer", area: "Berufsorganisation Gesundheit"},
+  "35": {name: "Heinemann", area: "Einzelhandel"},
+  "36": {name: "TKMS", area: "Schiffbau & Rüstungsindustrie"},
+  "37": {name: "Nordakademie Elmshorn", area: "Hochschule & duale Bildung"},
+  "38": {name: "Justizvollzugsschule", area: "Öffentliche Ausbildung"},
+  "39": {name: "Hotel Küstenperle", area: "Hotellerie & Tourismus"},
+  "40": {name: "Stolz", area: "Einzelhandel"},
+  "41": {name: "Nordseemilch Witzwort", area: "Lebensmittelproduktion"},
+  "42": {name: "Oberlandesgericht", area: "Justiz"},
+  "43": {name: "Bundesagentur für Arbeit und Jugendberufsagentur", area: "Arbeitsmarkt & öffentliche Verwaltung"},
+  "44": {name: "Anhalt Logistics", area: "Logistik"},
+  "45": {name: "Apothekerkammer", area: "Berufsorganisation Gesundheit"},
+  "46": {name: "Köster", area: "Bauunternehmen"},
+  "47": {name: "Raffinerie Hemmingstedt", area: "Energie & Raffinerie"},
+  "48": {name: "Boyens Medien", area: "Medien & Verlag"},
+  "49": {name: "Nissen Elektrobau", area: "Elektrotechnik"},
+  "50": {name: "WKK", area: "Gesundheitswesen"},
+  "51": {name: "Uni Kiel", area: "Hochschule & Bildung"},
+  "52": {name: "Eurodesk/ Kreisjugendring Stormarn", area: "Jugend- & Bildungsarbeit"},
+  "53": {name: "Duale Hochschule SH", area: "Hochschule & duale Bildung"},
+  "54": {name: "Strabag", area: "Bauunternehmen"},
+  "55": {name: "Rechtsanwaltskammer", area: "Berufsorganisation Recht"},
+  "56": {name: "Fielmann", area: "Augenoptik & Einzelhandel"},
+  "57": {name: "Lidl", area: "Lebensmitteleinzelhandel"},
+  "58": {name: "Enercon", area: "Windenergie & Anlagenbau"},
+  "59": {name: "Kardell-Sothmann", area: "Handwerk"},
+  "60": {name: "Deutsche Bahn", area: "Schienenverkehr"},
+  "61": {name: "AOK", area: "Krankenversicherung"},
+  "62": {name: "Göpfert", area: "Maschinenbau"},
+  "63": {name: "Landespolizei", area: "Sicherheitsbehörde"},
+  "64": {name: "Sparkasse Westholstein", area: "Bankwesen"},
+  "65": {name: "Stadt Heide", area: "Kommunalverwaltung"},
+  "66": {name: "IHK Flensburg", area: "Wirtschaftsorganisation"},
+  "67": {name: "Zoll", area: "Finanz- & Sicherheitsbehörde"},
+  "68": {name: "Volks- und Raiffeisenbank SH Mitte", area: "Bankwesen"},
+  "69": {name: "Scheller Boyens", area: "Buchhandlung"},
+  "70": {name: "Schornsteinfegerinnung", area: "Handwerksorganisation"},
+  "71": {name: "Schutzstation Wattenmeer / Umweltjahr / FÖJ", area: "Umwelt- & Naturschutz"}
+};
