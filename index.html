@@ -140,12 +140,30 @@ h1 {
 // 1️⃣ Teilnehmer-ID auf Seite anzeigen
 document.getElementById("participantId").innerText = participantId;
 
-// 2️⃣ Fortschritt berechnen und Liste der besuchten Stände anzeigen
+// 2️⃣ Anzahl der Stände
 const totalStands = Object.keys(stands).length;
 document.getElementById("totalStands").innerText = totalStands;
 
-function updateProgress() {
-  const visits = JSON.parse(localStorage.getItem("visits")) || [];
+// 3️⃣ Fortschritt aus Supabase laden
+async function loadProgress() {
+  // Abfrage der besuchten Stände für diesen Teilnehmer
+  const { data, error } = await supabase
+    .from('visits')
+    .select('stand_id')
+    .eq('participant_id', participantId);
+
+  if(error){
+    console.error("Fehler beim Laden:", error);
+    return;
+  }
+
+  const visits = data.map(v => v.stand_id.toString());
+  updateProgress(visits);
+}
+
+// 4️⃣ Fortschritt aktualisieren
+function updateProgress(visits) {
+  // Anzahl
   const count = visits.length;
   document.getElementById("visitedCount").innerText = count;
 
@@ -163,8 +181,8 @@ function updateProgress() {
   });
 }
 
-// 3️⃣ Update beim Laden
-updateProgress();
+// 5️⃣ Aufruf beim Laden
+loadProgress();
 </script>
 
 </body>
