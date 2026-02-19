@@ -5,76 +5,122 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stand-Check</title>
 
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
+
+<!-- Stand-Daten -->
 <script src="data.js"></script>
 
+<script>
+const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I";
+const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
+
 <style>
-body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:linear-gradient(135deg,#1e3c72,#2a5298); color:white; text-align:center; margin:0; padding:50px 20px;}
-.container { background:rgba(255,255,255,0.1); padding:40px; border-radius:20px; max-width:400px; margin:auto; box-shadow:0 10px 25px rgba(0,0,0,0.3);}
-h1 { font-size:28px; margin-bottom:20px; }
-.company { font-weight:bold; font-size:22px; margin-bottom:10px;}
-.area { font-size:16px; color:#ccc; margin-bottom:20px;}
-.status { font-weight:bold; margin-top:15px; color:#00ff99;}
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  color: white;
+  text-align: center;
+}
+.container { padding:30px 20px; }
+.card {
+  background:white;
+  color:#333;
+  border-radius:20px;
+  padding:30px;
+  margin-top:40px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.25);
+  animation: fadeIn 0.6s ease-in-out;
+}
+h1 { margin-top:40px; font-size:24px; }
+.company { font-size:22px; font-weight:bold; margin-bottom:10px; }
+.area { font-size:16px; color:#666; margin-bottom:20px; }
+.success { margin-top:15px; font-weight:bold; color:green; }
+.button {
+  display:inline-block;
+  margin-top:25px;
+  padding:14px 24px;
+  border-radius:30px;
+  background:#2a5298;
+  color:white;
+  text-decoration:none;
+  font-weight:bold;
+  transition:0.3s;
+}
+.button:hover { background:#1e3c72; }
+@keyframes fadeIn {
+  from {opacity:0; transform:translateY(10px);}
+  to {opacity:1; transform:translateY(0);}
+}
+#participantId { font-weight:bold; color: #ff9900; }
 </style>
 </head>
 <body>
+
 <div class="container">
-<h1>🎯 Stand gescannt</h1>
-<div class="company" id="company"></div>
-<div class="area" id="area"></div>
-<div>Stand-Nr.: <strong id="standNum"></strong></div>
-<div id="status" class="status"></div>
-<a href="index.html" style="color:#00ff99; display:block; margin-top:20px;">🔙 Zurück zum Fortschritt</a>
+<h1>🎯 Stand erfolgreich gescannt</h1>
+
+<div class="card">
+  <div>ID: <span id="participantId"></span></div>
+  <div class="company" id="company"></div>
+  <div class="area" id="area"></div>
+  <div>Stand-Nr.: <strong id="standNum"></strong></div>
+  <div id="status" class="success"></div>
+  <a href="index.html" class="button">🔙 Zurück zum Fortschritt</a>
+</div>
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", async function(){
+// 1️⃣ Stand-ID aus URL
+const params = new URLSearchParams(window.location.search);
+const sid = params.get("sid");
+if(!sid){ alert("Ungültiger QR-Code"); throw new Error("Keine Stand-ID"); }
 
-  const params = new URLSearchParams(window.location.search);
-  const sid = params.get("sid");
-  if(!sid){ alert("Ungültiger QR-Code"); return; }
-
-  const standData = stands[sid];
-  if(!standData){ alert("Stand unbekannt"); return; }
-
-  document.getElementById("company").innerText = standData.name;
-  document.getElementById("area").innerText = standData.area;
-  document.getElementById("standNum").innerText = sid;
-
-  // Teilnehmer-ID
-  let participantId = localStorage.getItem("participantId");
-  if(!participantId){
-    participantId = "T-"+Math.random().toString(36).substring(2,8).toUpperCase();
+// 2️⃣ Teilnehmer-ID erzeugen / anzeigen
+let participantId = localStorage.getItem("participantId");
+if(!participantId){
+    participantId = "T-" + Math.random().toString(36).substring(2,8).toUpperCase();
     localStorage.setItem("participantId", participantId);
+}
+document.getElementById("participantId").innerText = participantId;
+
+// 3️⃣ Standdaten anzeigen
+const standData = stands[sid];
+if(!standData){ alert("Unbekannter Stand"); throw new Error("Stand nicht gefunden"); }
+document.getElementById("company").innerText = standData.name;
+document.getElementById("area").innerText = standData.area;
+document.getElementById("standNum").innerText = sid;
+
+// 4️⃣ Lokal speichern
+let visits = JSON.parse(localStorage.getItem("visits")) || [];
+let alreadyVisited = visits.includes(sid);
+if(!alreadyVisited){
+  visits.push(sid);
+  localStorage.setItem("visits", JSON.stringify(visits));
+}
+
+// 5️⃣ Supabase speichern (nur wenn neu)
+async function saveStand(){
+  if(alreadyVisited){
+    document.getElementById("status").innerText = "ℹ Dieser Stand wurde bereits gezählt.";
+    return;
   }
-
-  // Supabase
-  const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
-  const supabase = Supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-  // Prüfen, ob Stand schon besucht
-  const { data: existing, error: checkError } = await supabase.from('visits').select('*')
-    .eq('participant_id', participantId)
-    .eq('stand_id', parseInt(sid));
-
-  if(checkError) console.error("Fehler beim Prüfen:", checkError);
-
-  if(existing.length>0){
-    document.getElementById("status").innerText = "ℹ Stand wurde bereits gezählt.";
+  const { data, error } = await supabase.from('visits')
+      .insert([{ participant_id: participantId, stand_id: parseInt(sid) }]);
+  if(error){
+    document.getElementById("status").innerText = "❌ Fehler beim Speichern";
+    console.error("Supabase Insert Error:", error);
   } else {
-    const { data, error } = await supabase.from('visits').insert([
-      { participant_id: participantId, stand_id: parseInt(sid) }
-    ]);
-    if(error){
-      console.error("Fehler beim Insert:", error);
-      document.getElementById("status").innerText = "❌ Fehler beim Speichern";
-    } else {
-      console.log("Insert erfolgreich:", data);
-      document.getElementById("status").innerText = "✅ Besuch gespeichert!";
-    }
+    document.getElementById("status").innerText = "✅ Besuch erfolgreich gespeichert!";
+    console.log("Supabase Insert OK:", data);
   }
-});
+}
+
+saveStand();
 </script>
+
 </body>
 </html>
