@@ -33,11 +33,11 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGls
 const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Teilnehmer-ID
-if(!localStorage.getItem("participantId")){
-  const id = "T-"+Math.random().toString(36).substring(2,8).toUpperCase();
-  localStorage.setItem("participantId", id);
+let participantId = localStorage.getItem("participantId");
+if(!participantId){
+  participantId = "T-" + Math.random().toString(36).substring(2,8).toUpperCase();
+  localStorage.setItem("participantId", participantId);
 }
-const participantId = localStorage.getItem("participantId");
 document.getElementById("participantId").innerText = participantId;
 
 let lastCount=0;
