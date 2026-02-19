@@ -80,6 +80,18 @@ h1 {
   transition: width 0.4s ease-in-out;
 }
 
+.visited-list {
+  margin-top: 15px;
+  text-align: left;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.visited-list li {
+  padding: 5px 0;
+  border-bottom: 1px solid #ddd;
+}
+
 .button {
   display: inline-block;
   margin-top: 20px;
@@ -117,6 +129,9 @@ h1 {
   <div class="progress-bar">
     <div class="progress-fill" id="progressFill"></div>
   </div>
+
+  <!-- Liste der besuchten Stände -->
+  <ul class="visited-list" id="visitedList"></ul>
 </div>
 
 </div>
@@ -125,7 +140,7 @@ h1 {
 // 1️⃣ Teilnehmer-ID auf Seite anzeigen
 document.getElementById("participantId").innerText = participantId;
 
-// 2️⃣ Fortschritt berechnen
+// 2️⃣ Fortschritt berechnen und Liste der besuchten Stände anzeigen
 const totalStands = Object.keys(stands).length;
 document.getElementById("totalStands").innerText = totalStands;
 
@@ -134,14 +149,22 @@ function updateProgress() {
   const count = visits.length;
   document.getElementById("visitedCount").innerText = count;
 
+  // Fortschrittsbalken
   const percent = (count / totalStands) * 100;
   document.getElementById("progressFill").style.width = percent + "%";
+
+  // Liste der besuchten Stände
+  const listEl = document.getElementById("visitedList");
+  listEl.innerHTML = "";
+  visits.forEach(sid => {
+    const li = document.createElement("li");
+    li.textContent = `Stand ${sid}: ${stands[sid] ? stands[sid].name : "Unbekannt"}`;
+    listEl.appendChild(li);
+  });
 }
 
 // 3️⃣ Update beim Laden
 updateProgress();
-
-// Optional: wenn Stände hinzugefügt werden, einfach localStorage updaten & updateProgress() aufrufen
 </script>
 
 </body>
