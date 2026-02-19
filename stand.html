@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stand-Check</title>
+<title>Gewinnspiel Fortschritt</title>
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
@@ -29,9 +29,10 @@ body {
   backdrop-filter:blur(10px);
 }
 h1 { font-size:28px; margin-bottom:30px; }
-.company { font-size:22px; font-weight:bold; margin-bottom:10px; }
-.area { font-size:16px; color:#ccc; margin-bottom:20px; }
-#status { margin-top:15px; font-weight:bold; }
+#participantId { font-weight:bold; font-size:20px; color:#00ff99; }
+.progress { font-size:22px; margin-top:20px; }
+.stand-list { text-align:left; margin-top:20px; }
+.stand-list li { margin-bottom:5px; }
 .button {
   display:inline-block;
   margin-top:25px;
@@ -49,19 +50,17 @@ h1 { font-size:28px; margin-bottom:30px; }
 <body>
 
 <div class="container">
-<h1>🎯 Stand gescannt</h1>
-<div class="company" id="company"></div>
-<div class="area" id="area"></div>
-<div>Stand-Nr.: <strong id="standNum"></strong></div>
-<div>Deine Teilnehmer-ID: <strong id="participantId"></strong></div>
-<div id="status"></div>
-<a href="index.html" class="button">🔙 Zurück zum Fortschritt</a>
+<h1>🎯 Dein Fortschritt</h1>
+<p>Deine Teilnehmer-ID: <span id="participantId"></span></p>
+<p class="progress">Besuchte Stände: <span id="count">0</span> / 71</p>
+<ul class="stand-list" id="visitedStands"></ul>
+<a href="data.html" class="button">📷 Weiter zum nächsten Stand</a>
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", async function() {
 
-  // Teilnehmer-ID aus localStorage oder neu erzeugen
+  // 1️⃣ Teilnehmer-ID aus localStorage
   let participantId = localStorage.getItem("participantId");
   if(!participantId){
     participantId = "T-" + Math.random().toString(36).substring(2,8).toUpperCase();
@@ -69,52 +68,32 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   document.getElementById("participantId").innerText = participantId;
 
-  // Stand-ID aus URL
-  const params = new URLSearchParams(window.location.search);
-  const sid = params.get("sid");
-  if(!sid){ alert("Ungültiger QR-Code"); throw new Error("Keine Stand-ID"); }
-
-  // Standdaten aus data.js
-  const standData = stands[sid];
-  if(!standData){ alert("Stand nicht gefunden"); throw new Error("Stand nicht gefunden"); }
-
-  document.getElementById("company").innerText = standData.name;
-  document.getElementById("area").innerText = standData.area;
-  document.getElementById("standNum").innerText = sid;
-
-  // Supabase Client
+  // 2️⃣ Supabase Client
   const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5fsmMl_DMOtze9ztqn9PGlsg0I";
   const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Supabase speichern (nur wenn Stand noch nicht besucht)
-  async function saveStand(){
-    const { data: existing, error: selErr } = await supabase
-      .from('visits')
-      .select('*')
-      .eq('participant_id', participantId)
-      .eq('stand_id', parseInt(sid));
+  // 3️⃣ Besuche aus Supabase abrufen
+  const { data: visits, error } = await supabase
+    .from('visits')
+    .select('*')
+    .eq('participant_id', participantId);
 
-    if(selErr){ console.error(selErr); document.getElementById("status").innerText="❌ Fehler"; return; }
-
-    if(existing.length>0){
-      document.getElementById("status").innerText="ℹ Dieser Stand wurde bereits gezählt.";
-      return;
-    }
-
-    const { error: insErr } = await supabase
-      .from('visits')
-      .insert([{ participant_id: participantId, stand_id: parseInt(sid) }]);
-
-    if(insErr){
-      console.error(insErr);
-      document.getElementById("status").innerText="❌ Fehler beim Speichern";
-    } else {
-      document.getElementById("status").innerText="✅ Besuch erfolgreich gespeichert!";
-    }
+  if(error){
+    console.error(error);
+    return;
   }
 
-  saveStand();
+  // 4️⃣ Anzeigen
+  const visited = visits.map(v=>v.stand_id);
+  document.getElementById("count").innerText = visited.length;
+
+  const listEl = document.getElementById("visitedStands");
+  visited.forEach(sid=>{
+    const li = document.createElement("li");
+    li.textContent = `Stand ${sid}: ${stands[sid]?.name || "Unbekannt"}`;
+    listEl.appendChild(li);
+  });
 
 });
 </script>
