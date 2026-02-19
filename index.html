@@ -44,6 +44,14 @@ strong {
   font-size: 48px;
   font-weight: bold;
   color: #00ff99;
+  transition: transform 0.3s, color 0.3s;
+}
+
+/* Animation */
+@keyframes pulse {
+  0% { transform: scale(1); color: #00ff99; }
+  50% { transform: scale(1.3); color: #00ff44; }
+  100% { transform: scale(1); color: #00ff99; }
 }
 </style>
 </head>
@@ -67,7 +75,22 @@ document.getElementById("participantId").innerText = participantId;
 
 // Besuche zählen
 let visits = JSON.parse(localStorage.getItem("visits")) || [];
-document.getElementById("visitedCount").innerText = visits.length;
+const visitedCountEl = document.getElementById("visitedCount");
+visitedCountEl.innerText = visits.length;
+
+// Animation, wenn neuer Stand besucht wird
+function updateVisitedCount() {
+  const newCount = JSON.parse(localStorage.getItem("visits"))?.length || 0;
+  if (newCount > visits.length) {
+    visitedCountEl.classList.add("pulse");
+    setTimeout(() => visitedCountEl.classList.remove("pulse"), 400);
+  }
+  visits = JSON.parse(localStorage.getItem("visits")) || [];
+  visitedCountEl.innerText = visits.length;
+}
+
+// Überprüft alle 1 Sekunde, ob neue Stände besucht wurden
+setInterval(updateVisitedCount, 1000);
 </script>
 
 </body>
