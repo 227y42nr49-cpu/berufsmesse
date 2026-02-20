@@ -10,15 +10,12 @@
 <script src="data.js"></script>
 
 <script>
-/* =========================
-   SUPABASE KONFIGURATION
-========================= */
 
 const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I"; // ← falls nötig einsetzen
 
 // WICHTIG: nicht "supabase" nennen!
-const supabaseClient = window.supabase.createClient(
+const supabaseClient = supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
