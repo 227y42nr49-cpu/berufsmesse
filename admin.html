@@ -3,126 +3,136 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Stand-Check</title>
+<title>Admin – Gewinner & Auswertung</title>
 
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
-<script>
-const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cmhsc2x6b2tnZXpha2JvdWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NTg3OTMsImV4cCI6MjA4NTUzNDc5M30.wskrw2Qvp2FbNCFJ5SfsmMl_DMOtze9ztqn9PGlsg0I";
-const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-</script>
+<!-- Supabase v2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-body {
-  margin:0;
-  font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background: linear-gradient(135deg,#1e3c72,#2a5298);
-  color:white;
-  text-align:center;
-}
-.container { padding:30px 20px; }
-.card {
-  background:white; color:#333; border-radius:20px; padding:30px; margin-top:30px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.25);
-  animation:fadeIn 0.6s ease-in-out;
-  max-width:700px; margin-left:auto; margin-right:auto;
-}
-h1 { font-size:24px; margin-top:0; }
-input[type="password"], input[type="number"] {
-  padding:10px; width:60%; border-radius:10px; border:none; margin-top:10px;
-}
-.button {
-  display:inline-block; margin-top:15px; padding:12px 20px; border-radius:30px;
-  background:#2a5298; color:white; text-decoration:none; font-weight:bold; transition:0.3s; cursor:pointer;
-}
+body { font-family: -apple-system, BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f4f4f4; color:#333; padding:20px; }
+h1 { text-align:center; margin-bottom:30px; }
+.container { max-width:800px; margin:0 auto; background:white; padding:20px; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1); }
+table { width:100%; border-collapse: collapse; margin-top:20px; }
+th, td { padding:10px; text-align:center; border:1px solid #ddd; }
+th { background:#2a5298; color:white; }
+.button { margin-top:15px; padding:10px 20px; background:#2a5298; color:white; border:none; border-radius:5px; cursor:pointer; }
 .button:hover { background:#1e3c72; }
-table { width:100%; border-collapse:collapse; margin-top:20px; }
-th,td { padding:10px; border:1px solid #ccc; color:#333; text-align:left; }
-#winnerOutput { margin-top:15px; font-weight:bold; color:green; }
-@keyframes fadeIn { from {opacity:0; transform: translateY(10px);} to {opacity:1; transform:translateY(0);} }
 </style>
 </head>
 
 <body>
 <div class="container">
-<h1>🔒 Admin Stand-Check</h1>
+<h1>Admin – Auswertung & Gewinner</h1>
 
-<div class="card" id="loginCard">
-  <p>Bitte Passwort eingeben:</p>
-  <input type="password" id="adminPassword" placeholder="Passwort"/>
-  <div class="button" id="loginBtn">Einloggen</div>
-  <p id="loginStatus" style="color:red;"></p>
+<!-- Passwort -->
+<div>
+<label>Passwort: </label>
+<input type="password" id="adminPass">
+<button class="button" id="loginBtn">Login</button>
+<div id="loginStatus" style="margin-top:10px;color:red;"></div>
 </div>
 
-<div class="card" id="adminContent" style="display:none;">
-  <h2>Teilnehmer & Besuche</h2>
-  <div id="participants"></div>
+<!-- Teilnehmer Tabelle -->
+<div id="adminContent" style="display:none;">
+<label>Mindestanzahl Stände: </label>
+<input type="number" id="minStands" value="10" min="1" style="width:60px;">
+<button class="button" id="refreshBtn">Aktualisieren</button>
+<button class="button" id="drawWinnerBtn">Gewinner ziehen</button>
 
-  <div style="margin-top:20px;">
-    <input type="number" id="minStands" value="10" style="width:60px;"/>
-    <span>Minimale Stände für Gewinner</span>
-    <div class="button" id="drawWinnerBtn">🎉 Gewinner ziehen</div>
-    <div id="winnerOutput"></div>
-  </div>
+<table id="participantsTable">
+<thead>
+<tr>
+<th>Teilnehmer-ID</th>
+<th>Besuchte Stände</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<div id="winnerResult" style="margin-top:15px; font-weight:bold; color:green;"></div>
 </div>
 
 <script>
-// 🔐 Passwortschutz
-document.getElementById("loginBtn").addEventListener("click",()=>{
-  const pw = document.getElementById("adminPassword").value;
-  if(pw==="Messe2026gho!"){
-    document.getElementById("loginCard").style.display="none";
+/* =========================
+   Supabase v2 Client
+========================= */
+const SUPABASE_URL = "https://jxrmhslzokgezakboufx.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cm1oc2x6b2tnZXph..."; // Dein anon key
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* =========================
+   Passwort Schutz
+========================= */
+const adminPassword = "Messe2026gho!";
+document.getElementById("loginBtn").addEventListener("click", () => {
+  const pass = document.getElementById("adminPass").value;
+  if(pass === adminPassword){
     document.getElementById("adminContent").style.display="block";
+    document.getElementById("loginStatus").innerText="";
     loadParticipants();
   } else {
-    document.getElementById("loginStatus").innerText="❌ Falsches Passwort";
+    document.getElementById("loginStatus").innerText="Falsches Passwort!";
   }
 });
 
-// 📊 Teilnehmer laden
-async function loadParticipants(){
-  const { data, error } = await supabase
-    .from('visits')
-    .select('*');
-
-  if(error){ console.error(error); return; }
-
-  // Gruppieren nach participant_id
-  const participants = {};
-  data.forEach(row=>{
-    if(!participants[row.participant_id]) participants[row.participant_id]=[];
-    participants[row.participant_id].push(Number(row.stand_id));
-  });
-
-  // Tabelle anzeigen
-  const container = document.getElementById("participants");
-  container.innerHTML = "<table><tr><th>Teilnehmer-ID</th><th>Besuchte Stände (#)</th></tr>"+
-    Object.keys(participants).map(pid=>`<tr><td>${pid}</td><td>${participants[pid].join(", ")}</td></tr>`).join("")+
-    "</table>";
-
-  window.participantsData = participants; // global für Gewinnerziehen
-}
-
-// 🎯 Gewinner ziehen
-document.getElementById("drawWinnerBtn").addEventListener("click",()=>{
+/* =========================
+   Teilnehmer laden
+========================= */
+async function loadParticipants() {
   const minStands = parseInt(document.getElementById("minStands").value) || 10;
-  const participants = window.participantsData || {};
 
-  // Nur Teilnehmer, die genug Stände besucht haben
-  const eligible = Object.entries(participants)
-    .filter(([pid, stands]) => stands.length >= minStands)
-    .map(([pid]) => pid);
+  // Zähle pro Teilnehmer die distinct Stand-IDs
+  const { data, error } = await supabaseClient
+    .from('visits')
+    .select('participant_id, stand_id', { count: 'exact' });
 
-  if(eligible.length===0){
-    document.getElementById("winnerOutput").innerText="❌ Keine Teilnehmer erfüllen die Mindestanforderung";
+  if(error){
+    console.error(error);
     return;
   }
 
-  // Zufällig Gewinner auswählen
-  const winner = eligible[Math.floor(Math.random()*eligible.length)];
-  document.getElementById("winnerOutput").innerText=`🏆 Gewinner: ${winner}`;
+  // Teilnehmer + unique Stände zählen
+  const counts = {};
+  data.forEach(row=>{
+    if(!counts[row.participant_id]) counts[row.participant_id] = new Set();
+    counts[row.participant_id].add(row.stand_id);
+  });
+
+  // Filter nach Mindestanzahl
+  const filtered = Object.entries(counts).filter(([id, stands])=>stands.size >= minStands);
+
+  // Tabelle füllen
+  const tbody = document.querySelector("#participantsTable tbody");
+  tbody.innerHTML="";
+  filtered.forEach(([id, stands])=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML=`<td>${id}</td><td>${stands.size}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* =========================
+   Aktualisieren Button
+========================= */
+document.getElementById("refreshBtn").addEventListener("click", loadParticipants);
+
+/* =========================
+   Gewinner ziehen
+========================= */
+document.getElementById("drawWinnerBtn").addEventListener("click", ()=>{
+  const rows = document.querySelectorAll("#participantsTable tbody tr");
+  if(rows.length===0){ 
+    document.getElementById("winnerResult").innerText="Keine Teilnehmer mit ausreichender Standzahl!";
+    return;
+  }
+
+  const winnerRow = rows[Math.floor(Math.random()*rows.length)];
+  const winnerId = winnerRow.cells[0].innerText;
+  const stands = winnerRow.cells[1].innerText;
+
+  document.getElementById("winnerResult").innerText=`🎉 Gewinner: ${winnerId} (Stände: ${stands})`;
 });
 </script>
+
 </body>
 </html>
