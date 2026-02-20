@@ -78,13 +78,14 @@ document.getElementById("loginBtn").addEventListener("click", () => {
 /* =========================
    Teilnehmer laden
 ========================= */
+let availableWinners = []; // Für Mehrfach-Gewinner
+
 async function loadParticipants() {
   const minStands = parseInt(document.getElementById("minStands").value) || 10;
 
-  // Zähle pro Teilnehmer die distinct Stand-IDs
   const { data, error } = await supabaseClient
     .from('visits')
-    .select('participant_id, stand_id', { count: 'exact' });
+    .select('participant_id, stand_id');
 
   if(error){
     console.error(error);
@@ -95,7 +96,7 @@ async function loadParticipants() {
   const counts = {};
   data.forEach(row=>{
     if(!counts[row.participant_id]) counts[row.participant_id] = new Set();
-    counts[row.participant_id].add(row.stand_id);
+    counts[row.participant_id].add(Number(row.stand_id));
   });
 
   // Filter nach Mindestanzahl
@@ -109,6 +110,9 @@ async function loadParticipants() {
     tr.innerHTML=`<td>${id}</td><td>${stands.size}</td>`;
     tbody.appendChild(tr);
   });
+
+  // Gewinner-Liste aktualisieren
+  availableWinners = [...filtered];
 }
 
 /* =========================
@@ -117,20 +121,19 @@ async function loadParticipants() {
 document.getElementById("refreshBtn").addEventListener("click", loadParticipants);
 
 /* =========================
-   Gewinner ziehen
+   Gewinner ziehen (mehrfach)
 ========================= */
 document.getElementById("drawWinnerBtn").addEventListener("click", ()=>{
-  const rows = document.querySelectorAll("#participantsTable tbody tr");
-  if(rows.length===0){ 
-    document.getElementById("winnerResult").innerText="Keine Teilnehmer mit ausreichender Standzahl!";
+  if(availableWinners.length === 0){
+    document.getElementById("winnerResult").innerText = "Alle Gewinner wurden bereits gezogen oder keine Teilnehmer erfüllt die Mindestanzahl!";
     return;
   }
 
-  const winnerRow = rows[Math.floor(Math.random()*rows.length)];
-  const winnerId = winnerRow.cells[0].innerText;
-  const stands = winnerRow.cells[1].innerText;
+  const index = Math.floor(Math.random() * availableWinners.length);
+  const [winnerId, winnerStands] = availableWinners.splice(index,1)[0];
 
-  document.getElementById("winnerResult").innerText=`🎉 Gewinner: ${winnerId} (Stände: ${stands})`;
+  document.getElementById("winnerResult").innerText =
+    `🎉 Gewinner: ${winnerId} (Stände: ${winnerStands.size})`;
 });
 </script>
 
