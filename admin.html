@@ -81,38 +81,53 @@ document.getElementById("loginBtn").addEventListener("click", () => {
 let availableWinners = []; // Für Mehrfach-Gewinner
 
 async function loadParticipants() {
-  const minStands = parseInt(document.getElementById("minStands").value) || 10;
+
+  const minStands = parseInt(document.getElementById("minStands").value) || 1;
 
   const { data, error } = await supabaseClient
     .from('visits')
-    .select('participant_id, stand_id');
+    .select('*');
 
-  if(error){
+  console.log("RAW DATA:", data);
+
+  if (error) {
     console.error(error);
     return;
   }
 
-  // Teilnehmer + unique Stände zählen
   const counts = {};
-  data.forEach(row=>{
-    if(!counts[row.participant_id]) counts[row.participant_id] = new Set();
-    counts[row.participant_id].add(Number(row.stand_id));
+
+  data.forEach(row => {
+
+    const pid = row.participant_id;
+    const sid = row.stand_id;
+
+    if (!pid || !sid) return;
+
+    if (!counts[pid]) counts[pid] = new Set();
+
+    counts[pid].add(String(sid)); // <<< bewusst als STRING
   });
 
-  // Filter nach Mindestanzahl
-  const filtered = Object.entries(counts).filter(([id, stands])=>stands.size >= minStands);
+  console.log("COUNTS:", counts);
 
-  // Tabelle füllen
+  const filtered = Object.entries(counts)
+    .filter(([id, stands]) => stands.size >= minStands);
+
+  console.log("FILTERED:", filtered);
+
   const tbody = document.querySelector("#participantsTable tbody");
-  tbody.innerHTML="";
-  filtered.forEach(([id, stands])=>{
+  tbody.innerHTML = "";
+
+  filtered.forEach(([id, stands]) => {
     const tr = document.createElement("tr");
-    tr.innerHTML=`<td>${id}</td><td>${stands.size}</td>`;
+    tr.innerHTML = `<td>${id}</td><td>${stands.size}</td>`;
     tbody.appendChild(tr);
   });
 
-  // Gewinner-Liste aktualisieren
   availableWinners = [...filtered];
+
+  console.log("AVAILABLE WINNERS:", availableWinners);
 }
 
 /* =========================
