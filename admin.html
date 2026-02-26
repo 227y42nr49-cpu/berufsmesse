@@ -95,20 +95,24 @@ async function loadParticipants() {
     return;
   }
 
-  const counts = {};
+  // Teilnehmer + unique Stände zählen (robust)
+const counts = {};
 
-  data.forEach(row => {
+data.forEach(row => {
 
-    const pid = row.participant_id;
-    const sid = row.stand_id;
+  const pid = row.participant_id;
+  const sid = row.stand_id;
 
-    if (!pid || !sid) return;
+  // WICHTIG: Ungültige Einträge ignorieren
+  if (!pid || !sid) return;
 
-    if (!counts[pid]) counts[pid] = new Set();
+  if (!counts[pid]) {
+    counts[pid] = new Set();
+  }
 
-    counts[pid].add(String(sid)); // <<< bewusst als STRING
-  });
-
+  // Immer als String speichern → keine Typ-Probleme
+  counts[pid].add(String(sid));
+});
   console.log("COUNTS:", counts);
 
   const filtered = Object.entries(counts)
